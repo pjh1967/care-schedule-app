@@ -1,0 +1,7 @@
+// ── 🔑 여기에 본인 값 입력 ────────────────────────────────────
+const GAPI_CONFIG = {
+  CLIENT_ID    : "575088677348-i8s653ni326sj9e7jpl6ikjrgbbrdfup.apps.googleusercontent.com",
+  API_KEY      : "AIzaSyA17IdNlmepK2eK3riUzqH489BVJ-uGyww",
+  SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
+  SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
+};
