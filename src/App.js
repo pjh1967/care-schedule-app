@@ -12,6 +12,7 @@ const GAPI_CONFIG = {
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
+
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -75,7 +76,6 @@ function ai(sys, msg, json=false) {
     const nameMatch = sys.split(",").map(s=>s.trim()).find(n=>msg.includes(n));
     const dayMatches = [...msg.matchAll(/(\d+)일/g)].map(d=>Number(d[1])).filter(d=>d>=1&&d<=31);
     const isVacation = m.includes("연차")||m.includes("휴가")||m.includes("쉬");
-    const isOff      = m.includes("비번")||m.includes("공가")||m.includes("휴무");
     if(nameMatch&&dayMatches.length>0) {
       return Promise.resolve({name:nameMatch,type:isVacation?"vacation":"off",
         days:dayMatches,summary:`${nameMatch} ${dayMatches.join(",")}일 ${isVacation?"연차":"비번"}`,priority:1});
@@ -466,7 +466,6 @@ async function runPipeline(request, staff, y, m, holidays, requests, hourly, nig
   log("schedule","기준일 2025-01-01 → 순환 연속성 자동 계산 ✓");
   const sched={};
   const R = rules || {};
-  const minWD   = R.minWorkDays ?? 22;
   const maxWD   = R.maxWorkDays ?? 26;
   const maxCons = R.maxConsec   ?? 5;
 
