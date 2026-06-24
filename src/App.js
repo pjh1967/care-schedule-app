@@ -12,6 +12,7 @@ const GAPI_CONFIG = {
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
+
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -48,12 +49,12 @@ const ROLE_BG = {
 };
 
 const DEFAULT_STAFF = [
-  {no:1,  name:"홍길동",       role:"시설장",    gender:"남", priority:1, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
-  {no:2,  name:"김영희",       role:"부원장",    gender:"여", priority:1, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
-  {no:3,  name:"이순신",       role:"간호부장",  gender:"남", priority:2, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
-  {no:4,  name:"박민지",       role:"간호조무사",gender:"여", priority:2, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
-  {no:5,  name:"최지은",       role:"사회복지사",gender:"여", priority:2, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
-  {no:6,  name:"정태양",       role:"팀장",      gender:"남", priority:2, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:1,  name:"(시설장 이름)", role:"시설장",    gender:"남", priority:0, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:2,  name:"(부원장 이름)", role:"부원장",    gender:"여", priority:0, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:3,  name:"(간호부장)",    role:"간호부장",  gender:"여", priority:0, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:4,  name:"(간호조무사)",  role:"간호조무사",gender:"여", priority:0, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:5,  name:"(사회복지사)",  role:"사회복지사",gender:"여", priority:0, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:6,  name:"(팀장 이름)",   role:"팀장",      gender:"남", priority:0, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
   {no:7,  name:"요양보호사 01",role:"요양보호사",gender:"여", priority:3, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
   {no:8,  name:"요양보호사 02",role:"요양보호사",gender:"여", priority:3, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
   {no:9,  name:"요양보호사 03",role:"요양보호사",gender:"여", priority:3, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
@@ -421,9 +422,11 @@ const Sheets = {
     });
 
     // 위반사항 행
+    // violations: 문자열 또는 {day,type} 객체 모두 처리
+    const violMsgs = violations.map(v=>typeof v==="string" ? v : `${month}/${v.day} ${v.type}`);
     const violRow = violations.length===0
       ? ["✅ 법정기준 이상 없음 (주간·야간 최소 2인 충족)"]
-      : [`⚠ 위반 ${violations.length}건: ${violations.slice(0,3).map(v=>`${month}/${v.day} ${v.type}`).join(" | ")}`];
+      : [`⚠ 위반 ${violations.length}건: ${violMsgs.slice(0,3).join(" | ")}${violations.length>3?` 외 ${violations.length-3}건`:""}`];
 
     // 범례 행
     const legendRow = ["[범례] 주=주간07~15  야=야간22~07  공=비번  V=연차  H=공휴일"];
@@ -938,8 +941,11 @@ function SchedulePanel({scheduleData,staff,requests,holidays,year,month,score,sh
           <table style={{borderCollapse:"collapse",fontSize:10,minWidth:800}}>
             <thead>
               <tr>
-                <th style={{...th,width:110,background:C.steel,color:"#fff"}}>성명</th>
-                <th style={{...th,width:55,background:C.steel,color:"#fff"}}>유형</th>
+                <th style={{...th,width:100,background:C.steel,color:"#fff"}}>성명</th>
+                <th style={{...th,width:70,background:C.steel,color:"#fff"}}>직위</th>
+                <th style={{...th,width:30,background:C.steel,color:"#fff"}}>성별</th>
+                <th style={{...th,width:30,background:C.steel,color:"#fff"}}>순위</th>
+                <th style={{...th,width:55,background:C.steel,color:"#fff"}}>근무유형</th>
                 {Array.from({length:total},(_,i)=>i+1).map(d=>{
                   const wd=new Date(year,month-1,d).getDay();
                   const isH=!!holidays[d];
@@ -954,12 +960,15 @@ function SchedulePanel({scheduleData,staff,requests,holidays,year,month,score,sh
               </tr>
             </thead>
             <tbody>
-              {staff.map((emp,ri)=>{
+              {staff.filter((emp,i,arr)=>arr.findIndex(x=>x.name===emp.name)===i).map((emp,ri)=>{
                 const row=scheduleData[emp.name]||{};
                 let dc=0,nc=0,oc=0,vc=0;
                 const tb=emp.type==="주간전담"?"#2a1a08":emp.type==="야간전담"?"#1a1a3a":"#0d2a1a";
                 return(<tr key={emp.no} style={{background:ri%2===0?"#0d1b2e":"#0a1628"}}>
-                  <td style={{...td,background:tb,fontWeight:700,textAlign:"left",paddingLeft:6}}>{emp.name}</td>
+                  <td style={{...td,background:tb,fontWeight:700,textAlign:"left",paddingLeft:6,fontSize:9}}>{emp.name}</td>
+                  <td style={{...td,background:tb,color:"#ddd",fontSize:9}}>{emp.role||"요양보호사"}</td>
+                  <td style={{...td,background:tb,color:C.gray,fontSize:9}}>{emp.gender||"여"}</td>
+                  <td style={{...td,background:tb,color:C.gray,fontSize:9}}>{emp.priority||"-"}</td>
                   <td style={{...td,background:tb,color:C.gray,fontSize:9}}>
                     {emp.type==="주간전담"?"주전담":emp.type==="야간전담"?"야전담":"순환"}</td>
                   {Array.from({length:total},(_,i)=>i+1).map(d=>{
@@ -1589,7 +1598,8 @@ export default function App(){
   // 연결 성공 시 Sheets에서 설정 자동 불러오기
   useEffect(()=>{
     if(sheetsStatus==="connected"){
-      loadFromSheets().catch(()=>{});
+      // 자동 연결 시 조용히 불러오기 (alert 없음)
+      loadFromSheets(true).catch(()=>{});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[sheetsStatus]);
@@ -1651,16 +1661,18 @@ export default function App(){
   };
 
   // Sheets에서 설정 불러오기
-  const loadFromSheets = async () => {
+  const loadFromSheets = async (silent=false) => {
     if(!sheetsReady) return;
     try {
       const cfg = await Sheets.readConfig();
       setYear(cfg.year); setMonth(cfg.month);
-      setStaff(cfg.staff); setHolidays(cfg.holidays);
+      // Sheets 직원 데이터가 유효한 경우만 적용 (빈 데이터면 DEFAULT_STAFF 유지)
+      if(cfg.staff && cfg.staff.length > 0) setStaff(cfg.staff);
+      setHolidays(cfg.holidays);
       setHourly(cfg.hourly); setNightHrs(cfg.nightHrs);
       const req = await Sheets.readRequests();
       setRequests(req);
-      alert("✅ Google Sheets에서 설정을 불러왔습니다.");
+      if(!silent) alert("✅ Google Sheets에서 설정을 불러왔습니다.");
     } catch(e){ alert("불러오기 실패: "+e.message); }
   };
 
