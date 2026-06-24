@@ -393,15 +393,10 @@ const Sheets = {
       ...Array.from({length:total}, (_,i)=>{
         const d   = i+1;
         const wd  = new Date(year,month-1,d).getDay();
-        const hol = holidays[d] ? `(${holidays[d]})` : "";
-        return `${d}
-${WD_KR2[wd]}${hol}`;
+        const hol = holidays[d] ? "("+holidays[d]+")" : "";
+        return d+"\n"+WD_KR2[wd]+hol;
       }),
-      "주간
-합계", "야간
-합계", "공가
-합계", "연차
-합계"
+      "주간합계", "야간합계", "공가합계", "연차합계"
     ];
 
     // ── 직원별 데이터 행 ──
