@@ -13,7 +13,6 @@ const GAPI_CONFIG = {
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
 
-
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -1597,13 +1596,13 @@ export default function App(){
   },[]);
 
   // 연결 성공 시 Sheets에서 설정 자동 불러오기
-  useEffect(()=>{
-    if(sheetsStatus==="connected"){
-      // 자동 연결 시 조용히 불러오기 (alert 없음)
-      loadFromSheets(true).catch(()=>{});
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[sheetsStatus]);
+  // 자동 불러오기 비활성화 - 수동으로만 불러오기
+  // Sheets 연결 시 자동으로 구버전 데이터 덮어쓰기 방지
+  // useEffect(()=>{
+  //   if(sheetsStatus==="connected"){
+  //     loadFromSheets(true).catch(()=>{});
+  //   }
+  // },[sheetsStatus]);
 
   // 55분마다 토큰 자동 갱신
   useEffect(()=>{
@@ -1664,10 +1663,17 @@ export default function App(){
   // Sheets에서 설정 불러오기
   const loadFromSheets = async (silent=false) => {
     if(!sheetsReady) return;
+    // 수동 불러오기 시 확인 팝업
+    if(!silent){
+      const ok = window.confirm(
+        "⚠ Google Sheets에서 설정을 불러오면\n현재 앱의 직원 정보가 Sheets 데이터로 교체됩니다.\n\n계속하시겠습니까?"
+      );
+      if(!ok) return;
+    }
     try {
       const cfg = await Sheets.readConfig();
       setYear(cfg.year); setMonth(cfg.month);
-      // Sheets 직원 데이터가 유효한 경우만 적용 (빈 데이터면 DEFAULT_STAFF 유지)
+      // Sheets 직원 데이터가 유효한 경우만 적용
       if(cfg.staff && cfg.staff.length > 0) setStaff(cfg.staff);
       setHolidays(cfg.holidays);
       setHourly(cfg.hourly); setNightHrs(cfg.nightHrs);
