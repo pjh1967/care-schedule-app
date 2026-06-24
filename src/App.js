@@ -12,7 +12,6 @@ const GAPI_CONFIG = {
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
-
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -352,8 +351,8 @@ const Sheets = {
     staff.forEach(s=>{ staffMap[s.name]={role:s.role||"",gender:s.gender||"",priority:s.priority||3}; });
     const rows = Object.entries(requests).flatMap(([name,days])=>
       Object.entries(days).map(([d,t])=>{
-        const info = staffMap[name]||{role:"",gender:"",priority:3};
-        return [name, info.role, info.gender, `${info.priority}순위`, Number(d), t, 1];
+        const info = staffMap[name]||{role:"",gender:"",priority:0};
+        return [name, info.role, info.gender, info.priority ? String(info.priority) : "-", Number(d), t, 1];
       })
     ).sort((a,b)=>a[4]-b[4]);
     const all = [...header, ...rows];
@@ -414,7 +413,7 @@ const Sheets = {
         emp.name,
         emp.role || "요양보호사",
         emp.gender || "여",
-        `${emp.priority||3}순위`,
+        emp.priority ? String(emp.priority) : "-",
         emp.type==="주간전담"?"주간전담": emp.type==="야간전담"?"야간전담":"순환",
         ...dayCells,
         dc, nc, oc, vc
@@ -1019,7 +1018,7 @@ function StaffPanel({staff, setStaff}){
       name: isMgr||isNurse ? `${role} 신규` : `${role} ${String(sameRole.length+1).padStart(2,"0")}`,
       role,
       gender:"여",
-      priority: isMgr?1 : isNurse?2 : 3,
+      priority: 0,
       type: isMgr||isNurse ? "주간전담" : "순환",
       offset: newOffset,
       leave:15, wage:0, minWork:22,
@@ -1118,13 +1117,17 @@ function StaffPanel({staff, setStaff}){
                         </select>
                       </td>
                       {/* 업무순위 */}
-                      <td style={{...td,width:55}}>
-                        <select value={s.priority||3}
+                      <td style={{...td,width:60}}>
+                        <select value={s.priority??0}
                           onChange={e=>update(i,"priority",Number(e.target.value))}
                           style={{...selectStyle,fontSize:10,width:"100%"}}>
-                          <option value={1}>1순위</option>
-                          <option value={2}>2순위</option>
-                          <option value={3}>3순위</option>
+                          <option value={0}>-</option>
+                          {Array.from(
+                            {length: staff.filter(x=>x.role==="요양보호사").length + 1},
+                            (_,k) => k+1
+                          ).map(n=>(
+                            <option key={n} value={n}>{n}</option>
+                          ))}
                         </select>
                       </td>
                       {/* 근무유형 */}
