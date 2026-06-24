@@ -12,6 +12,7 @@ const GAPI_CONFIG = {
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
+
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -1037,11 +1038,7 @@ function StaffPanel({staff, setStaff}){
     members: staff.map((s,i)=>({...s,_idx:i})).filter(s=>s.role===role),
   })).filter(g=>g.members.length>0);
 
-  const HDR = ["성 명","직 위","성별","업무순위","근무유형","순환
-오프셋","연차
-(일)","야간수당
-(원/월)","최소근무
-(일)","삭제"];
+  const HDR = ["성명","직위","성별","업무순위","근무유형","순환오프셋","연차(일)","야간수당(원)","최소근무(일)","삭제"];
 
   return(
     <div style={{padding:16,overflowY:"auto",flex:1}}>
