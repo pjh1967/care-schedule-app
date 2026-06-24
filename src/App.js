@@ -102,12 +102,17 @@ function ai(sys, msg, json=false) {
 //  Google Sheets API 모듈
 // ════════════════════════════════════════════════════════════════
 const Sheets = {
-  // gapi 로드 여부
+  // 내부 상태
   _ready: false,
+  _tokenClient: null,
+  _token: null,
+  _tokenExpiry: null,
 
-  // GAPI + GIS 초기화
+  // GAPI + GIS 스크립트 로드 (최초 1회)
   async init() {
     return new Promise((resolve, reject) => {
+      // 이미 초기화된 경우 스킵
+      if(Sheets._ready){ resolve(true); return; }
       const script1 = document.createElement("script");
       script1.src = "https://apis.google.com/js/api.js";
       script1.onload = () => {
@@ -127,29 +132,62 @@ const Sheets = {
     });
   },
 
-  // OAuth 로그인 (Google Identity Services)
-  async signIn() {
+  // GIS 토큰 클라이언트 초기화
+  async _initTokenClient() {
     return new Promise((resolve, reject) => {
+      if(Sheets._tokenClient){ resolve(); return; }
       const script2 = document.createElement("script");
       script2.src = "https://accounts.google.com/gsi/client";
       script2.onload = () => {
-        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        Sheets._tokenClient = window.google.accounts.oauth2.initTokenClient({
           client_id: GAPI_CONFIG.CLIENT_ID,
           scope: GAPI_CONFIG.SCOPES,
-          callback: (resp) => {
-            if(resp.error) reject(resp.error);
-            else resolve(resp.access_token);
-          },
+          callback: () => {},  // 콜백은 getToken에서 동적 설정
         });
-        tokenClient.requestAccessToken({prompt:"consent"});
+        resolve();
       };
       script2.onerror = reject;
       document.head.appendChild(script2);
     });
   },
 
+  // 토큰 발급 (자동 갱신 포함)
+  async _getToken(forceRefresh=false) {
+    // 유효한 토큰이 있으면 재사용
+    const now = Date.now();
+    if(!forceRefresh && Sheets._token && Sheets._tokenExpiry && now < Sheets._tokenExpiry - 60000){
+      return Sheets._token;
+    }
+    // 새 토큰 요청
+    return new Promise((resolve, reject) => {
+      Sheets._tokenClient.callback = (resp) => {
+        if(resp.error){ reject(resp.error); return; }
+        Sheets._token = resp.access_token;
+        Sheets._tokenExpiry = now + (resp.expires_in||3600)*1000;
+        window.gapi.client.setToken({access_token: resp.access_token});
+        resolve(resp.access_token);
+      };
+      // 토큰이 있으면 팝업 없이 조용히 갱신
+      const prompt = (Sheets._token && !forceRefresh) ? "" : "consent";
+      Sheets._tokenClient.requestAccessToken({prompt});
+    });
+  },
+
+  // OAuth 로그인 (최초 로그인 또는 강제 재인증)
+  async signIn(forcePrompt=false) {
+    await this._initTokenClient();
+    return await this._getToken(forcePrompt);
+  },
+
+  // 자동 토큰 갱신 (API 호출 전 항상 호출)
+  async _ensureToken() {
+    await this._initTokenClient();
+    return await this._getToken(false);
+  },
+
   // 범위 읽기
   async read(range) {
+    await this._ensureToken();
     const r = await window.gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: GAPI_CONFIG.SPREADSHEET_ID,
       range,
@@ -159,6 +197,7 @@ const Sheets = {
 
   // 범위 쓰기 (값만)
   async write(range, values) {
+    await this._ensureToken();
     await window.gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId: GAPI_CONFIG.SPREADSHEET_ID,
       range,
@@ -626,8 +665,12 @@ const td={border:`1px solid ${C.border}`,padding:"3px 2px",textAlign:"center",
 
 // ── 연결 상태 배지 ─────────────────────────────────────────────
 function ConnectBadge({status, onConnect, onLoad}){
-  const labels={idle:"🔗 Sheets 연결",loading:"연결 중...",connected:"✅ Sheets 연결됨",error:"❌ 연결 실패"};
-  const bgs={idle:C.steel,loading:C.amber,connected:C.teal,error:C.red};
+  const labels={
+    idle:"🔗 Sheets 연결", loading:"연결 중...",
+    connected:"✅ Sheets 연결됨", error:"❌ 재연결",
+    auto:"⏳ 자동 연결 중..."
+  };
+  const bgs={idle:C.steel,loading:C.amber,connected:C.teal,error:C.red,auto:C.amber};
   return (
     <div style={{display:"flex",gap:6,alignItems:"center"}}>
       <button onClick={status==="idle"||status==="error"?onConnect:undefined}
@@ -1226,12 +1269,63 @@ export default function App(){
   const setState = useCallback((id,s)=>setAgentStates(p=>({...p,[id]:s})),[]);
   const sheetsReady = sheetsStatus==="connected";
 
+  // 앱 시작 시 자동 연결 시도
+  useEffect(()=>{
+    autoConnectSheets();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
+  // 연결 성공 시 Sheets에서 설정 자동 불러오기
+  useEffect(()=>{
+    if(sheetsStatus==="connected"){
+      loadFromSheets().catch(()=>{});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[sheetsStatus]);
+
+  // 55분마다 토큰 자동 갱신
+  useEffect(()=>{
+    if(sheetsStatus!=="connected") return;
+    const timer = setInterval(async ()=>{
+      try { await Sheets._getToken(false); }
+      catch(e){ setSheetsStatus("idle"); }
+    }, 55*60*1000);
+    return ()=>clearInterval(timer);
+  },[sheetsStatus]);
+
+  // 55분마다 토큰 자동 갱신 (OAuth 토큰 만료 1시간 전 갱신)
+  useEffect(()=>{
+    if(sheetsStatus!=="connected") return;
+    const timer = setInterval(async ()=>{
+      try {
+        await Sheets._getToken(false);
+      } catch(e){
+        setSheetsStatus("idle");
+      }
+    }, 55 * 60 * 1000); // 55분
+    return ()=>clearInterval(timer);
+  },[sheetsStatus]);
+
   // Sheets 연결
+  // 자동 연결 시도 (팝업 없이)
+  const autoConnectSheets = async () => {
+    try {
+      await Sheets.init();
+      await Sheets._initTokenClient();
+      // 저장된 토큰으로 조용히 연결 시도
+      await Sheets._getToken(false);
+      setSheetsStatus("connected");
+    } catch(e){
+      // 자동 연결 실패 시 idle 유지 (사용자가 직접 클릭 필요)
+      setSheetsStatus("idle");
+    }
+  };
+
   const connectSheets = async () => {
     setSheetsStatus("loading");
     try {
       await Sheets.init();
-      await Sheets.signIn();
+      await Sheets.signIn(true);  // 강제 팝업으로 로그인
       setSheetsStatus("connected");
     } catch(e){
       console.error(e);
