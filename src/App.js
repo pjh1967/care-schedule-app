@@ -151,35 +151,62 @@ const Sheets = {
     });
   },
 
+  // 토큰 저장/복원 (sessionStorage 사용)
+  _saveToken(token, expiresIn) {
+    const expiry = Date.now() + (expiresIn||3600)*1000;
+    try {
+      sessionStorage.setItem("gapi_token", token);
+      sessionStorage.setItem("gapi_expiry", String(expiry));
+    } catch(e){}
+    Sheets._token = token;
+    Sheets._tokenExpiry = expiry;
+  },
+  _loadToken() {
+    try {
+      const token  = sessionStorage.getItem("gapi_token");
+      const expiry = Number(sessionStorage.getItem("gapi_expiry")||0);
+      if(token && expiry > Date.now() + 60000){
+        Sheets._token = token;
+        Sheets._tokenExpiry = expiry;
+        return true;
+      }
+    } catch(e){}
+    return false;
+  },
+
   // 토큰 발급 (자동 갱신 포함)
   async _getToken(forceRefresh=false) {
-    // 유효한 토큰이 있으면 재사용
     const now = Date.now();
+    // 세션에 유효한 토큰 있으면 재사용
+    if(!forceRefresh && Sheets._loadToken()){
+      window.gapi.client.setToken({access_token: Sheets._token});
+      return Sheets._token;
+    }
+    // 메모리에 유효한 토큰 있으면 재사용
     if(!forceRefresh && Sheets._token && Sheets._tokenExpiry && now < Sheets._tokenExpiry - 60000){
+      window.gapi.client.setToken({access_token: Sheets._token});
       return Sheets._token;
     }
     // 새 토큰 요청
     return new Promise((resolve, reject) => {
       Sheets._tokenClient.callback = (resp) => {
         if(resp.error){ reject(resp.error); return; }
-        Sheets._token = resp.access_token;
-        Sheets._tokenExpiry = now + (resp.expires_in||3600)*1000;
+        Sheets._saveToken(resp.access_token, resp.expires_in);
         window.gapi.client.setToken({access_token: resp.access_token});
         resolve(resp.access_token);
       };
-      // 토큰이 있으면 팝업 없이 조용히 갱신
-      const prompt = (Sheets._token && !forceRefresh) ? "" : "consent";
-      Sheets._tokenClient.requestAccessToken({prompt});
+      // prompt 없이 시도 → 실패하면 consent로 재시도
+      Sheets._tokenClient.requestAccessToken({prompt: forceRefresh?"consent":""});
     });
   },
 
-  // OAuth 로그인 (최초 로그인 또는 강제 재인증)
+  // OAuth 로그인
   async signIn(forcePrompt=false) {
     await this._initTokenClient();
     return await this._getToken(forcePrompt);
   },
 
-  // 자동 토큰 갱신 (API 호출 전 항상 호출)
+  // API 호출 전 토큰 보장
   async _ensureToken() {
     await this._initTokenClient();
     return await this._getToken(false);
@@ -1307,16 +1334,22 @@ export default function App(){
   },[sheetsStatus]);
 
   // Sheets 연결
-  // 자동 연결 시도 (팝업 없이)
+  // 자동 연결 시도 (sessionStorage 토큰 활용)
   const autoConnectSheets = async () => {
     try {
       await Sheets.init();
       await Sheets._initTokenClient();
-      // 저장된 토큰으로 조용히 연결 시도
+      // sessionStorage에 유효한 토큰 있으면 팝업 없이 자동 연결
+      if(Sheets._loadToken()){
+        window.gapi.client.setToken({access_token: Sheets._token});
+        setSheetsStatus("connected");
+        return;
+      }
+      // 토큰 없으면 조용히 갱신 시도 (prompt 없음)
       await Sheets._getToken(false);
       setSheetsStatus("connected");
     } catch(e){
-      // 자동 연결 실패 시 idle 유지 (사용자가 직접 클릭 필요)
+      // 자동 연결 실패 → 사용자가 직접 버튼 클릭 필요
       setSheetsStatus("idle");
     }
   };
