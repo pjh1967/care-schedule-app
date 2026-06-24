@@ -12,7 +12,6 @@ const GAPI_CONFIG = {
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
-
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -34,17 +33,43 @@ const BASE    = new Date(2025,0,1);
 const WD_KR   = ["일","월","화","수","목","금","토"];
 const SHEET_NAMES = { CONFIG:"설정", REQUEST:"요청입력", SCHEDULE:"근무표", WAGE:"수당계산" };
 
+const ROLES = ["시설장","부원장","간호부장","간호조무사","사회복지사","팀장","요양보호사","조리원"];
+const ROLE_COLOR = {
+  "시설장":   "#F59E0B", "부원장":   "#F59E0B",
+  "간호부장": "#EF4444", "간호조무사":"#EF4444",
+  "사회복지사":"#8B5CF6","팀장":     "#8B5CF6",
+  "요양보호사":"#00B4A6","조리원":   "#F97316",
+};
+const ROLE_BG = {
+  "시설장":   "#2a1a00","부원장":   "#2a1a00",
+  "간호부장": "#2a0000","간호조무사":"#2a0a0a",
+  "사회복지사":"#1a0a2a","팀장":    "#1a0a2a",
+  "요양보호사":"#0a2a1a","조리원":  "#2a1a0a",
+};
+
 const DEFAULT_STAFF = [
-  {no:1,  name:"요양보호사 01", type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
-  {no:2,  name:"요양보호사 02", type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
-  {no:3,  name:"요양보호사 03", type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
-  {no:4,  name:"요양보호사 04", type:"야간전담", offset:null, leave:15, wage:50000, minWork:22},
-  {no:5,  name:"요양보호사 05", type:"야간전담", offset:null, leave:15, wage:50000, minWork:22},
-  {no:6,  name:"요양보호사 06", type:"순환",     offset:0,    leave:15, wage:0,     minWork:22},
-  {no:7,  name:"요양보호사 07", type:"순환",     offset:1,    leave:15, wage:0,     minWork:22},
-  {no:8,  name:"요양보호사 08", type:"순환",     offset:2,    leave:15, wage:0,     minWork:22},
-  {no:9,  name:"요양보호사 09", type:"순환",     offset:3,    leave:15, wage:0,     minWork:22},
-  {no:10, name:"요양보호사 10", type:"순환",     offset:4,    leave:15, wage:0,     minWork:22},
+  {no:1,  name:"홍길동",       role:"시설장",    gender:"남", priority:1, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:2,  name:"김영희",       role:"부원장",    gender:"여", priority:1, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:3,  name:"이순신",       role:"간호부장",  gender:"남", priority:2, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:4,  name:"박민지",       role:"간호조무사",gender:"여", priority:2, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:5,  name:"최지은",       role:"사회복지사",gender:"여", priority:2, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:6,  name:"정태양",       role:"팀장",      gender:"남", priority:2, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:7,  name:"요양보호사 01",role:"요양보호사",gender:"여", priority:3, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:8,  name:"요양보호사 02",role:"요양보호사",gender:"여", priority:3, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:9,  name:"요양보호사 03",role:"요양보호사",gender:"여", priority:3, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:10, name:"요양보호사 04",role:"요양보호사",gender:"여", priority:3, type:"야간전담", offset:null, leave:15, wage:50000, minWork:22},
+  {no:11, name:"요양보호사 05",role:"요양보호사",gender:"여", priority:3, type:"야간전담", offset:null, leave:15, wage:50000, minWork:22},
+  {no:12, name:"요양보호사 06",role:"요양보호사",gender:"여", priority:3, type:"순환",     offset:0,    leave:15, wage:0,     minWork:22},
+  {no:13, name:"요양보호사 07",role:"요양보호사",gender:"여", priority:3, type:"순환",     offset:1,    leave:15, wage:0,     minWork:22},
+  {no:14, name:"요양보호사 08",role:"요양보호사",gender:"여", priority:3, type:"순환",     offset:2,    leave:15, wage:0,     minWork:22},
+  {no:15, name:"요양보호사 09",role:"요양보호사",gender:"여", priority:3, type:"순환",     offset:3,    leave:15, wage:0,     minWork:22},
+  {no:16, name:"요양보호사 10",role:"요양보호사",gender:"여", priority:3, type:"순환",     offset:4,    leave:15, wage:0,     minWork:22},
+  {no:17, name:"요양보호사 11",role:"요양보호사",gender:"여", priority:3, type:"순환",     offset:0,    leave:15, wage:0,     minWork:22},
+  {no:18, name:"요양보호사 12",role:"요양보호사",gender:"여", priority:3, type:"순환",     offset:1,    leave:15, wage:0,     minWork:22},
+  {no:19, name:"요양보호사 13",role:"요양보호사",gender:"여", priority:3, type:"순환",     offset:2,    leave:15, wage:0,     minWork:22},
+  {no:20, name:"요양보호사 14",role:"요양보호사",gender:"여", priority:3, type:"순환",     offset:3,    leave:15, wage:0,     minWork:22},
+  {no:21, name:"조리원 01",    role:"조리원",    gender:"여", priority:3, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
+  {no:22, name:"조리원 02",    role:"조리원",    gender:"여", priority:3, type:"주간전담", offset:null, leave:15, wage:0,     minWork:22},
 ];
 
 // ── 유틸 ──────────────────────────────────────────────────────
@@ -272,9 +297,16 @@ const Sheets = {
       if(row[0]==="NIGHTH")  nightHrs = Number(row[1])||176;
       if(row[0]==="STAFF") {
         staff.push({
-          no:Number(row[1]), name:row[2], type:row[3],
-          offset:row[4]==="-"||row[4]===""?null:Number(row[4]),
-          leave:Number(row[5])||15, wage:Number(row[6])||0,
+          no      : Number(row[1]),
+          name    : String(row[2]).trim(),
+          role    : String(row[3]).trim()||"요양보호사",
+          gender  : String(row[4]).trim()||"여",
+          priority: Number(row[5])||3,
+          type    : String(row[6]).trim()||"주간전담",
+          offset  : row[7]==="-"||row[7]===""?null:Number(row[7]),
+          leave   : Number(row[8])||15,
+          wage    : Number(row[9])||0,
+          minWork : Number(row[10])||22,
         });
       }
       if(row[0]==="HOL") holidays[Number(row[1])]=row[2];
@@ -284,12 +316,14 @@ const Sheets = {
 
   // ── 설정 시트 쓰기
   async writeConfig(year, month, staff, holidays, hourly, nightHrs) {
+    await this._ensureToken();
     const rows = [
       ["YEAR",   year],
       ["MONTH",  month],
       ["HOURLY", hourly],
       ["NIGHTH", nightHrs],
-      ...staff.map(s=>["STAFF", s.no, s.name, s.type, s.offset??"-", s.leave, s.wage]),
+      ...staff.map(s=>["STAFF", s.no, s.name, s.role||"요양보호사",
+        s.gender||"여", s.priority||3, s.type, s.offset??"-", s.leave, s.wage, s.minWork??22]),
       ...Object.entries(holidays).map(([d,nm])=>["HOL", d, nm]),
     ];
     await this.write(`${SHEET_NAMES.CONFIG}!A1:G${rows.length+2}`, rows);
@@ -310,11 +344,17 @@ const Sheets = {
   },
 
   // ── 요청 시트 쓰기
-  async writeRequests(requests) {
-    const header = [["성명","날짜(일)","유형","우선순위"]];
+  async writeRequests(requests, staff=[]) {
+    await this._ensureToken();
+    const header = [["성명","직위","성별","업무순위","날짜(일)","유형","우선순위"]];
+    const staffMap = {};
+    staff.forEach(s=>{ staffMap[s.name]={role:s.role||"",gender:s.gender||"",priority:s.priority||3}; });
     const rows = Object.entries(requests).flatMap(([name,days])=>
-      Object.entries(days).map(([d,t])=>[name,Number(d),t,1])
-    ).sort((a,b)=>a[1]-b[1]);
+      Object.entries(days).map(([d,t])=>{
+        const info = staffMap[name]||{role:"",gender:"",priority:3};
+        return [name, info.role, info.gender, `${info.priority}순위`, Number(d), t, 1];
+      })
+    ).sort((a,b)=>a[4]-b[4]);
     const all = [...header, ...rows];
     // 기존 내용 지우기
     await window.gapi.client.sheets.spreadsheets.values.clear({
@@ -326,106 +366,195 @@ const Sheets = {
 
   // ── 근무표 시트 쓰기 (값 + 색상)
   async writeSchedule(scheduleData, staff, year, month, holidays, violations, score) {
-    const total = daysIn(year,month);
+    await this._ensureToken();
+    const total   = daysIn(year, month);
     const sheetId = await this.getSheetId(SHEET_NAMES.SCHEDULE);
-    if(sheetId===null) throw new Error("근무표 시트를 찾을 수 없습니다");
+    if(sheetId === null) throw new Error("근무표 시트를 찾을 수 없습니다");
 
-    // ① 시트 초기화
+    // ── 시트 초기화 ──
     await window.gapi.client.sheets.spreadsheets.values.clear({
       spreadsheetId: GAPI_CONFIG.SPREADSHEET_ID,
-      range: `${SHEET_NAMES.SCHEDULE}!A1:AZ200`,
+      range: `${SHEET_NAMES.SCHEDULE}!A1:AZ300`,
     });
 
-    // ② 값 구성
-    // 헤더
-    const titleRow  = [`${year}년 ${month}월 요양보호사 근무표 — AI 자동 편성 (적합도: ${score}/100)`];
-    const dateRow   = ["성명","유형",...Array.from({length:total},(_,i)=>i+1),"주계","야계","공계","V계"];
-    const weekRow   = ["","",  ...Array.from({length:total},(_,i)=>{
-      const wd=new Date(year,month-1,i+1).getDay();
-      return WD_KR[wd]+(holidays[i+1]?"(H)":"");
-    }),"","","",""];
+    const WD_KR2 = ["일","월","화","수","목","금","토"];
 
-    const dataRows = staff.map(emp=>{
-      const row = scheduleData[emp.name]||{};
-      let dc=0,nc=0,oc=0,vc=0;
-      const cells = Array.from({length:total},(_,i)=>{
-        const s=row[i+1]||"공";
-        if(s==="주")dc++;else if(s==="야")nc++;
-        else if(s==="공"||s==="H")oc++;else if(s==="V")vc++;
+    // ── 헤더 행 구성 ──
+    // 행1: 타이틀
+    const titleRow = [
+      `${year}년 ${month}월 근무표`,
+      `편성: AI 자동  |  적합도: ${score}/100  |  위반: ${violations.length}건`,
+      ...Array(3+total+4).fill("")
+    ];
+
+    // 행2: 컬럼 헤더 (성명|직위|성별|업무순위|근무유형 + 일별날짜 + 합계)
+    const colHeader = [
+      "성  명", "직  위", "성별", "업무순위", "근무유형",
+      ...Array.from({length:total}, (_,i)=>{
+        const d   = i+1;
+        const wd  = new Date(year,month-1,d).getDay();
+        const hol = holidays[d] ? `(${holidays[d]})` : "";
+        return `${d}
+${WD_KR2[wd]}${hol}`;
+      }),
+      "주간
+합계", "야간
+합계", "공가
+합계", "연차
+합계"
+    ];
+
+    // ── 직원별 데이터 행 ──
+    const dataRows = staff.map(emp => {
+      const row    = scheduleData[emp.name] || {};
+      let dc=0, nc=0, oc=0, vc=0;
+      const dayCells = Array.from({length:total}, (_,i)=>{
+        const s = row[i+1] || "공";
+        if(s==="주")dc++; else if(s==="야")nc++;
+        else if(s==="공"||s==="H")oc++; else if(s==="V")vc++;
         return s;
       });
-      return [emp.name, emp.type==="주간전담"?"주전담":emp.type==="야간전담"?"야전담":"순환",
-              ...cells, dc, nc, oc, vc];
+      return [
+        emp.name,
+        emp.role || "요양보호사",
+        emp.gender || "여",
+        `${emp.priority||3}순위`,
+        emp.type==="주간전담"?"주간전담": emp.type==="야간전담"?"야간전담":"순환",
+        ...dayCells,
+        dc, nc, oc, vc
+      ];
     });
 
-    const violRow   = violations.length>0 ? [`⚠ 위반사항: ${violations.slice(0,3).join(" | ")}`] : ["✓ 법정기준 이상 없음"];
+    // 위반사항 행
+    const violRow = violations.length===0
+      ? ["✅ 법정기준 이상 없음 (주간·야간 최소 2인 충족)"]
+      : [`⚠ 위반 ${violations.length}건: ${violations.slice(0,3).map(v=>`${month}/${v.day} ${v.type}`).join(" | ")}`];
+
+    // 범례 행
     const legendRow = ["[범례] 주=주간07~15  야=야간22~07  공=비번  V=연차  H=공휴일"];
 
-    const allValues = [titleRow, dateRow, weekRow, ...dataRows, [], violRow, legendRow];
+    const allValues = [titleRow, colHeader, ...dataRows, [], violRow, legendRow];
     await this.write(`${SHEET_NAMES.SCHEDULE}!A1`, allValues);
 
-    // ③ 색상 스타일 적용
+    // ── 스타일 적용 ──
     const hexToRgb = hex => {
-      const h=hex.replace("#","");
+      const h = hex.replace("#","");
       return {
         red:   parseInt(h.slice(0,2),16)/255,
         green: parseInt(h.slice(2,4),16)/255,
         blue:  parseInt(h.slice(4,6),16)/255,
       };
     };
-    const bgReq = (r,c,color) => ({
-      repeatCell:{
-        range:{sheetId,startRowIndex:r,endRowIndex:r+1,startColumnIndex:c,endColumnIndex:c+1},
-        cell:{userEnteredFormat:{backgroundColor:hexToRgb(color)}},
+
+    const styleReqs = [];
+
+    // 타이틀 행
+    styleReqs.push({repeatCell:{
+      range:{sheetId,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:5+total+4},
+      cell:{userEnteredFormat:{
+        backgroundColor:hexToRgb("#1F3864"),
+        textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:12}
+      }},
+      fields:"userEnteredFormat",
+    }});
+
+    // 컬럼 헤더 행
+    styleReqs.push({repeatCell:{
+      range:{sheetId,startRowIndex:1,endRowIndex:2,startColumnIndex:0,endColumnIndex:5+total+4},
+      cell:{userEnteredFormat:{
+        backgroundColor:hexToRgb("#2E75B6"),
+        textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:9},
+        wrapStrategy:"WRAP",
+      }},
+      fields:"userEnteredFormat",
+    }});
+
+    // 직원별 행 스타일
+    const ROLE_HEX = {
+      "시설장":"#2a1a00","부원장":"#2a1a00",
+      "간호부장":"#2a0000","간호조무사":"#2a0a0a",
+      "사회복지사":"#1a0a2a","팀장":"#1a0a2a",
+      "요양보호사":"#0a2a1a","조리원":"#2a1a0a",
+    };
+    const SHIFT_HEX = {
+      주:"#F4B942",야:"#5B5EA6",공:"#A9D18E",
+      V:"#FFD966",H:"#EF4444",휴:"#D9D9D9"
+    };
+
+    staff.forEach((emp, ri) => {
+      const rowIdx = 2 + ri;
+      const roleBg = ROLE_HEX[emp.role]||"#1a2d4a";
+
+      // 고정 컬럼 5개 (성명~근무유형) 배경
+      styleReqs.push({repeatCell:{
+        range:{sheetId,startRowIndex:rowIdx,endRowIndex:rowIdx+1,
+               startColumnIndex:0,endColumnIndex:5},
+        cell:{userEnteredFormat:{backgroundColor:hexToRgb(roleBg)}},
         fields:"userEnteredFormat.backgroundColor",
-      }
-    });
-    const styleReqs=[];
-    // 타이틀 행 배경
-    styleReqs.push({repeatCell:{
-      range:{sheetId,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:4+total},
-      cell:{userEnteredFormat:{backgroundColor:hexToRgb("#1F3864"),
-        textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:11}}},
-      fields:"userEnteredFormat",
-    }});
-    // 헤더행
-    styleReqs.push({repeatCell:{
-      range:{sheetId,startRowIndex:1,endRowIndex:2,startColumnIndex:0,endColumnIndex:4+total},
-      cell:{userEnteredFormat:{backgroundColor:hexToRgb("#2E75B6"),
-        textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true}}},
-      fields:"userEnteredFormat",
-    }});
-    // 데이터 행 셀별 색상
-    staff.forEach((emp,ri)=>{
-      const rowIdx = 3+ri;
-      const typeBg = emp.type==="주간전담"?"#FFF0E0":emp.type==="야간전담"?"#EEEEFF":"#F0FFF0";
-      styleReqs.push(bgReq(rowIdx,0,typeBg)); // 이름열
-      styleReqs.push(bgReq(rowIdx,1,typeBg)); // 유형열
+      }});
+
+      // 일별 셀 색상
       const row = scheduleData[emp.name]||{};
-      for(let d=1;d<=total;d++){
-        const s=row[d]||"공";
-        styleReqs.push(bgReq(rowIdx,1+d,shiftBg(s)));
+      for(let d=1; d<=total; d++){
+        const s    = row[d]||"공";
+        const col  = 4 + d; // 0-based: 성명(0)직위(1)성별(2)순위(3)유형(4) + 날짜
+        const bg   = SHIFT_HEX[s]||"#334155";
+        styleReqs.push({repeatCell:{
+          range:{sheetId,startRowIndex:rowIdx,endRowIndex:rowIdx+1,
+                 startColumnIndex:col,endColumnIndex:col+1},
+          cell:{userEnteredFormat:{
+            backgroundColor:hexToRgb(bg),
+            textFormat:{bold:true,fontSize:9,
+              foregroundColor:["주","야","H"].includes(s)?{red:1,green:1,blue:1}:{red:0,green:0,blue:0}},
+            horizontalAlignment:"CENTER",
+          }},
+          fields:"userEnteredFormat",
+        }});
       }
     });
-    // 위반 행 배경
-    const violRowIdx = 3+staff.length+1;
-    styleReqs.push({repeatCell:{
-      range:{sheetId,startRowIndex:violRowIdx,endRowIndex:violRowIdx+1,startColumnIndex:0,endColumnIndex:4+total},
-      cell:{userEnteredFormat:{backgroundColor:hexToRgb(violations.length>0?"#FFD966":"#E2EFDA")}},
-      fields:"userEnteredFormat.backgroundColor",
-    }});
-    // 열 너비 자동조정
-    styleReqs.push({autoResizeDimensions:{dimensions:{sheetId,dimension:"COLUMNS",startIndex:0,endIndex:2}}});
+
+    // 열 너비: 고정 5컬럼
+    const fixedWidths = [120,90,50,70,80];
+    fixedWidths.forEach((w,i)=>{
+      styleReqs.push({updateDimensionProperties:{
+        range:{sheetId,dimension:"COLUMNS",startIndex:i,endIndex:i+1},
+        properties:{pixelSize:w},fields:"pixelSize",
+      }});
+    });
+    // 날짜 열 너비
     for(let d=0;d<total;d++){
       styleReqs.push({updateDimensionProperties:{
-        range:{sheetId,dimension:"COLUMNS",startIndex:2+d,endIndex:3+d},
-        properties:{pixelSize:28},fields:"pixelSize",
+        range:{sheetId,dimension:"COLUMNS",startIndex:5+d,endIndex:6+d},
+        properties:{pixelSize:26},fields:"pixelSize",
+      }});
+    }
+    // 합계 열
+    for(let i=0;i<4;i++){
+      styleReqs.push({updateDimensionProperties:{
+        range:{sheetId,dimension:"COLUMNS",startIndex:5+total+i,endIndex:6+total+i},
+        properties:{pixelSize:40},fields:"pixelSize",
       }});
     }
 
-    await this.applyStyles(styleReqs);
-  },
+    // 위반 행 색상
+    const violRowIdx = 2 + staff.length + 1;
+    styleReqs.push({repeatCell:{
+      range:{sheetId,startRowIndex:violRowIdx,endRowIndex:violRowIdx+1,
+             startColumnIndex:0,endColumnIndex:5+total+4},
+      cell:{userEnteredFormat:{
+        backgroundColor:hexToRgb(violations.length>0?"#FFD966":"#E2EFDA")
+      }},
+      fields:"userEnteredFormat.backgroundColor",
+    }});
 
+    // 행 고정 (헤더 2행, 컬럼 5열)
+    styleReqs.push({updateSheetProperties:{
+      properties:{sheetId,gridProperties:{frozenRowCount:2,frozenColumnCount:5}},
+      fields:"gridProperties.frozenRowCount,gridProperties.frozenColumnCount",
+    }});
+
+    if(styleReqs.length > 0) await this.applyStyles(styleReqs);
+  },
   // ── 수당 시트 쓰기
   async writeWage(staff, year, month, scheduleData, hourly, nightHrs) {
     const sheetId = await this.getSheetId(SHEET_NAMES.WAGE);
@@ -648,7 +777,7 @@ async function runPipeline(request, staff, y, m, holidays, requests, hourly, nig
       log("output","근무표 시트 저장 완료 ✓","success");
 
       log("output","📊 요청 시트 동기화 중...");
-      await Sheets.writeRequests(merged);
+      await Sheets.writeRequests(merged, staff);
       log("output","요청 시트 저장 완료 ✓","success");
 
       log("output","📊 수당 계산 시트 갱신 중...");
@@ -880,51 +1009,211 @@ function SchedulePanel({scheduleData,staff,requests,holidays,year,month,score,sh
 }
 
 // ── 직원 설정 패널 ────────────────────────────────────────────
-function StaffPanel({staff,setStaff}){
-  const update=(i,k,v)=>setStaff(p=>p.map((s,idx)=>idx===i?{...s,[k]:v}:s));
+function StaffPanel({staff, setStaff}){
+  const update = (i,k,v) => setStaff(p=>p.map((s,idx)=>idx===i?{...s,[k]:v}:s));
+
+  const addStaff = (role) => {
+    const sameRole = staff.filter(s=>s.role===role);
+    const newNo    = Math.max(0,...staff.map(s=>s.no)) + 1;
+    const isNurse  = ["간호부장","간호조무사","사회복지사","팀장"].includes(role);
+    const isMgr    = ["시설장","부원장"].includes(role);
+    const newOffset= role==="요양보호사" ? staff.filter(s=>s.type==="순환").length%6 : null;
+    setStaff(p=>[...p,{
+      no:newNo,
+      name: isMgr||isNurse ? `${role} 신규` : `${role} ${String(sameRole.length+1).padStart(2,"0")}`,
+      role,
+      gender:"여",
+      priority: isMgr?1 : isNurse?2 : 3,
+      type: isMgr||isNurse ? "주간전담" : "순환",
+      offset: newOffset,
+      leave:15, wage:0, minWork:22,
+    }]);
+  };
+
+  const delStaff = (i) => {
+    if(staff.length<=1){alert("최소 1명 필요");return;}
+    if(!window.confirm(`"${staff[i].name}" 삭제할까요?`))return;
+    setStaff(p=>p.filter((_,idx)=>idx!==i).map((s,idx)=>({...s,no:idx+1})));
+  };
+
+  // 직위별 그룹
+  const groups = ROLES.map(role=>({
+    role,
+    members: staff.map((s,i)=>({...s,_idx:i})).filter(s=>s.role===role),
+  })).filter(g=>g.members.length>0);
+
+  const HDR = ["성 명","직 위","성별","업무순위","근무유형","순환
+오프셋","연차
+(일)","야간수당
+(원/월)","최소근무
+(일)","삭제"];
+
   return(
     <div style={{padding:16,overflowY:"auto",flex:1}}>
-      <div style={sectionTitle}>👥 직원 정보 설정</div>
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-        <thead><tr>{["No","성 명","근무 유형","순환오프셋","연차(일)","야간수당(원/월)","최소근무(일/월)"]
-          .map(h=><th key={h} style={{...th,background:C.steel,color:"#fff",padding:"6px 4px"}}>{h}</th>)}</tr></thead>
-        <tbody>{staff.map((s,i)=>{
-          const bg=s.type==="주간전담"?"#2a1a08":s.type==="야간전담"?"#1a1a3a":"#0d2a1a";
-          return(<tr key={s.no}>
-            <td style={{...td,background:bg,color:C.gray,width:28}}>{s.no}</td>
-            <td style={{...td,background:bg}}>
-              <input value={s.name} onChange={e=>update(i,"name",e.target.value)} style={inputStyle}/></td>
-            <td style={{...td,background:bg}}>
-              <select value={s.type} onChange={e=>update(i,"type",e.target.value)} style={selectStyle}>
-                {["주간전담","야간전담","순환"].map(o=><option key={o}>{o}</option>)}
-              </select></td>
-            <td style={{...td,background:bg,width:70}}>
-              {s.type==="순환"
-                ?<input type="number" min={0} max={5} value={s.offset??0}
-                    onChange={e=>update(i,"offset",Number(e.target.value))} style={{...inputStyle,width:50}}/>
-                :<span style={{color:C.gray}}>—</span>}</td>
-            <td style={{...td,background:bg,width:60}}>
-              <input type="number" min={0} max={25} value={s.leave}
-                onChange={e=>update(i,"leave",Number(e.target.value))} style={{...inputStyle,width:50}}/></td>
-            <td style={{...td,background:bg,width:90}}>
-              <input type="number" min={0} value={s.wage}
-                onChange={e=>update(i,"wage",Number(e.target.value))} style={{...inputStyle,width:80}}/></td>
-            <td style={{...td,background:bg,width:80}}>
-              <input type="number" min={1} max={31} value={s.minWork??22}
-                onChange={e=>update(i,"minWork",Number(e.target.value))}
-                style={{...inputStyle,width:50,
-                  borderColor: (s.minWork??22)<22?"#EF4444":C.steel,
-                  color: (s.minWork??22)<22?"#EF4444":"inherit"}}/>
-              {(s.minWork??22)<22&&<span style={{fontSize:8,color:"#EF4444",display:"block"}}>⚠22일미만</span>}
-            </td>
-          </tr>);
-        })}</tbody>
-      </table>
+      <div style={{fontSize:13,fontWeight:700,color:C.teal,
+                   borderBottom:`1px solid ${C.border}`,paddingBottom:6,marginBottom:16}}>
+        👥 직원 정보 설정
+        <span style={{fontSize:10,color:C.gray,fontWeight:400,marginLeft:12}}>
+          전체 {staff.length}명 등록
+        </span>
+      </div>
+
+      {/* 직위별 섹션 */}
+      {groups.map(({role,members})=>(
+        <div key={role} style={{marginBottom:20}}>
+          {/* 섹션 헤더 */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                        marginBottom:6,padding:"6px 10px",borderRadius:6,
+                        background:ROLE_BG[role]||"#1a2d4a",
+                        border:`1px solid ${ROLE_COLOR[role]||C.teal}44`}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:8,height:8,borderRadius:"50%",
+                            background:ROLE_COLOR[role]||C.teal,
+                            boxShadow:`0 0 6px ${ROLE_COLOR[role]||C.teal}`}}/>
+              <span style={{fontSize:12,fontWeight:700,
+                             color:ROLE_COLOR[role]||C.teal}}>{role}</span>
+              <span style={{fontSize:10,color:C.gray,
+                             background:"#0a1628",borderRadius:4,
+                             padding:"1px 7px"}}>{members.length}명</span>
+            </div>
+            <button onClick={()=>addStaff(role)}
+              style={{background:ROLE_COLOR[role]||C.teal,color:"#fff",
+                       border:"none",borderRadius:6,padding:"4px 12px",
+                       fontSize:10,fontWeight:700,cursor:"pointer"}}>
+              + 추가
+            </button>
+          </div>
+
+          {/* 테이블 */}
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,minWidth:700}}>
+              <thead>
+                <tr>{HDR.map(h=>(
+                  <th key={h} style={{...th,background:C.steel,color:"#fff",
+                                       padding:"5px 3px",fontSize:9,whiteSpace:"pre-line"}}>
+                    {h}
+                  </th>
+                ))}</tr>
+              </thead>
+              <tbody>
+                {members.map((s)=>{
+                  const i   = s._idx;
+                  const bg  = ROLE_BG[role]||"#1a2d4a";
+                  const ac  = ROLE_COLOR[role]||C.teal;
+                  return(
+                    <tr key={s.no} style={{background:bg}}>
+                      {/* 성명 */}
+                      <td style={{...td,minWidth:90}}>
+                        <input value={s.name}
+                          onChange={e=>update(i,"name",e.target.value)}
+                          style={{...inputStyle,fontSize:10,width:"100%"}}/>
+                      </td>
+                      {/* 직위 */}
+                      <td style={{...td,minWidth:90}}>
+                        <select value={s.role}
+                          onChange={e=>update(i,"role",e.target.value)}
+                          style={{...selectStyle,fontSize:10,width:"100%"}}>
+                          {ROLES.map(r=><option key={r}>{r}</option>)}
+                        </select>
+                      </td>
+                      {/* 성별 */}
+                      <td style={{...td,width:50}}>
+                        <select value={s.gender||"여"}
+                          onChange={e=>update(i,"gender",e.target.value)}
+                          style={{...selectStyle,fontSize:10,width:"100%"}}>
+                          <option value="남">남</option>
+                          <option value="여">여</option>
+                        </select>
+                      </td>
+                      {/* 업무순위 */}
+                      <td style={{...td,width:55}}>
+                        <select value={s.priority||3}
+                          onChange={e=>update(i,"priority",Number(e.target.value))}
+                          style={{...selectStyle,fontSize:10,width:"100%"}}>
+                          <option value={1}>1순위</option>
+                          <option value={2}>2순위</option>
+                          <option value={3}>3순위</option>
+                        </select>
+                      </td>
+                      {/* 근무유형 */}
+                      <td style={{...td,minWidth:80}}>
+                        <select value={s.type}
+                          onChange={e=>update(i,"type",e.target.value)}
+                          style={{...selectStyle,fontSize:10,width:"100%"}}>
+                          {["주간전담","야간전담","순환"].map(o=>(
+                            <option key={o}>{o}</option>
+                          ))}
+                        </select>
+                      </td>
+                      {/* 순환오프셋 */}
+                      <td style={{...td,width:50}}>
+                        {s.type==="순환"
+                          ? <input type="number" min={0} max={5} value={s.offset??0}
+                              onChange={e=>update(i,"offset",Number(e.target.value))}
+                              style={{...inputStyle,width:40,fontSize:10,textAlign:"center"}}/>
+                          : <span style={{color:C.gray}}>—</span>}
+                      </td>
+                      {/* 연차 */}
+                      <td style={{...td,width:50}}>
+                        <input type="number" min={0} max={25} value={s.leave}
+                          onChange={e=>update(i,"leave",Number(e.target.value))}
+                          style={{...inputStyle,width:40,fontSize:10,textAlign:"center"}}/>
+                      </td>
+                      {/* 야간수당 */}
+                      <td style={{...td,width:75}}>
+                        <input type="number" min={0} value={s.wage}
+                          onChange={e=>update(i,"wage",Number(e.target.value))}
+                          style={{...inputStyle,width:66,fontSize:10,textAlign:"center"}}/>
+                      </td>
+                      {/* 최소근무 */}
+                      <td style={{...td,width:55}}>
+                        <input type="number" min={1} max={31} value={s.minWork??22}
+                          onChange={e=>update(i,"minWork",Number(e.target.value))}
+                          style={{...inputStyle,width:44,fontSize:10,textAlign:"center",
+                            borderColor:(s.minWork??22)<22?C.red:C.steel}}/>
+                      </td>
+                      {/* 삭제 */}
+                      <td style={{...td,width:40}}>
+                        <button onClick={()=>delStaff(i)}
+                          style={{background:"#5b1a1a",color:"#fca5a5",border:"none",
+                                   borderRadius:4,padding:"3px 7px",
+                                   fontSize:10,cursor:"pointer",fontWeight:700}}>
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+
+      {/* 새 직위 섹션 추가 */}
+      <div style={{padding:12,background:"#0a1628",borderRadius:8,
+                   border:`1px solid ${C.border}`,marginTop:4}}>
+        <div style={{fontSize:10,color:C.gray,marginBottom:8,fontWeight:600}}>
+          직위별 직원 추가
+        </div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {ROLES.map(role=>(
+            <button key={role} onClick={()=>addStaff(role)}
+              style={{background:ROLE_BG[role]||"#1a2d4a",
+                       color:ROLE_COLOR[role]||C.teal,
+                       border:`1px solid ${ROLE_COLOR[role]||C.teal}66`,
+                       borderRadius:6,padding:"5px 12px",
+                       fontSize:10,cursor:"pointer",fontWeight:600}}>
+              + {role}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── 공휴일 패널 ───────────────────────────────────────────────
+
 function HolidayPanel({holidays,setHolidays,year,month}){
   const [day,setDay]=useState(""); const [name,setName]=useState("");
   const total=daysIn(year,month);
