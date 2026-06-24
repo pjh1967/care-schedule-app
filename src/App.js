@@ -13,6 +13,7 @@ const GAPI_CONFIG = {
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
 
+
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -451,7 +452,7 @@ const Sheets = {
       range:{sheetId,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:5+total+4},
       cell:{userEnteredFormat:{
         backgroundColor:hexToRgb("#1F3864"),
-        textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:12}
+        textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:24}
       }},
       fields:"userEnteredFormat",
     }});
@@ -461,7 +462,7 @@ const Sheets = {
       range:{sheetId,startRowIndex:1,endRowIndex:2,startColumnIndex:0,endColumnIndex:5+total+4},
       cell:{userEnteredFormat:{
         backgroundColor:hexToRgb("#2E75B6"),
-        textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:9},
+        textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:18},
         wrapStrategy:"WRAP",
       }},
       fields:"userEnteredFormat",
@@ -502,7 +503,7 @@ const Sheets = {
                  startColumnIndex:col,endColumnIndex:col+1},
           cell:{userEnteredFormat:{
             backgroundColor:hexToRgb(bg),
-            textFormat:{bold:true,fontSize:9,
+            textFormat:{bold:true,fontSize:18,
               foregroundColor:["주","야","H"].includes(s)?{red:1,green:1,blue:1}:{red:0,green:0,blue:0}},
             horizontalAlignment:"CENTER",
           }},
@@ -590,7 +591,7 @@ const Sheets = {
       await this.applyStyles([
         {repeatCell:{range:{sheetId,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:7},
           cell:{userEnteredFormat:{backgroundColor:hexToRgb("#1F3864"),
-            textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:12}}},
+            textFormat:{foregroundColor:{red:1,green:1,blue:1},bold:true,fontSize:24}}},
           fields:"userEnteredFormat"}},
         {repeatCell:{range:{sheetId,startRowIndex:1,endRowIndex:2,startColumnIndex:0,endColumnIndex:7},
           cell:{userEnteredFormat:{backgroundColor:hexToRgb("#2E75B6"),
@@ -804,18 +805,18 @@ async function runPipeline(request, staff, y, m, holidays, requests, hourly, nig
 // ════════════════════════════════════════════════════════════════
 //  UI 컴포넌트
 // ════════════════════════════════════════════════════════════════
-const sectionTitle={fontSize:13,fontWeight:700,color:C.teal,marginBottom:12,
+const sectionTitle={fontSize:26,fontWeight:700,color:C.teal,marginBottom:12,
   borderBottom:`1px solid ${C.border}`,paddingBottom:6};
 const inputStyle={background:"#0a1628",color:C.white,border:`1px solid ${C.steel}`,
-  borderRadius:4,padding:"4px 6px",fontSize:11,width:"100%",outline:"none"};
+  borderRadius:4,padding:"4px 6px",fontSize:22,width:"100%",outline:"none"};
 const selectStyle={background:"#0a1628",color:C.white,border:`1px solid ${C.steel}`,
-  borderRadius:4,padding:"4px 6px",fontSize:11,outline:"none"};
+  borderRadius:4,padding:"4px 6px",fontSize:22,outline:"none"};
 const btnStyle=(bg=C.teal)=>({background:bg,color:"#fff",border:"none",borderRadius:4,
-  padding:"5px 14px",fontSize:11,fontWeight:600,cursor:"pointer"});
+  padding:"5px 14px",fontSize:22,fontWeight:600,cursor:"pointer"});
 const th={border:`1px solid ${C.border}`,padding:"4px 3px",textAlign:"center",
-  fontSize:10,fontWeight:600,position:"sticky",top:0,zIndex:1};
+  fontSize:20,fontWeight:600,position:"sticky",top:0,zIndex:1};
 const td={border:`1px solid ${C.border}`,padding:"3px 2px",textAlign:"center",
-  fontSize:10,height:22};
+  fontSize:20,height:44};
 
 // ── 연결 상태 배지 ─────────────────────────────────────────────
 function ConnectBadge({status, onConnect, onLoad}){
@@ -829,11 +830,11 @@ function ConnectBadge({status, onConnect, onLoad}){
     <div style={{display:"flex",gap:6,alignItems:"center"}}>
       <button onClick={status==="idle"||status==="error"?onConnect:undefined}
         style={{...btnStyle(bgs[status]),opacity:status==="loading"?0.7:1,
-                cursor:status==="loading"?"not-allowed":"pointer",fontSize:11}}>
+                cursor:status==="loading"?"not-allowed":"pointer",fontSize:22}}>
         {labels[status]}
       </button>
       {status==="connected"&&(
-        <button onClick={onLoad} style={{...btnStyle("#334155"),fontSize:10}}>
+        <button onClick={onLoad} style={{...btnStyle("#334155"),fontSize:20}}>
           📥 Sheets 불러오기
         </button>
       )}
@@ -852,7 +853,7 @@ function PipelinePanel({agentStates,logs,running}){
     <div style={{display:"flex",flex:1,overflow:"hidden"}}>
       <div style={{width:240,background:C.panel,borderRight:`1px solid ${C.border}`,
                    padding:16,display:"flex",flexDirection:"column",gap:3,overflowY:"auto"}}>
-        <div style={{fontSize:10,color:C.gray,marginBottom:8,fontWeight:600,letterSpacing:1}}>PIPELINE</div>
+        <div style={{fontSize:20,color:C.gray,marginBottom:8,fontWeight:600,letterSpacing:1}}>PIPELINE</div>
         {AGENTS.map((ag,idx)=>{
           const s=st(ag.id),run=s==="running";
           return(<div key={ag.id}>
@@ -860,10 +861,10 @@ function PipelinePanel({agentStates,logs,running}){
                           border:`1px solid ${sc(s)}`,borderRadius:8,padding:"10px 12px",transition:"all 0.3s",
                           boxShadow:run?`0 0 12px ${C.amber}44`:"none"}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:14}}>{ag.icon}</span>
+                <span style={{fontSize:28}}>{ag.icon}</span>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:11,fontWeight:700,color:sc(s)}}>{ag.label}</div>
-                  <div style={{fontSize:9,color:"#64748b",marginTop:1}}>{ag.desc}</div>
+                  <div style={{fontSize:22,fontWeight:700,color:sc(s)}}>{ag.label}</div>
+                  <div style={{fontSize:18,color:"#64748b",marginTop:1}}>{ag.desc}</div>
                 </div>
                 <div style={{width:7,height:7,borderRadius:"50%",background:sc(s),
                              animation:run?"pulse 1s infinite":"none"}}/>
@@ -877,12 +878,12 @@ function PipelinePanel({agentStates,logs,running}){
           </div>);
         })}
         <div style={{marginTop:12,padding:10,background:"#0a1628",borderRadius:8,border:`1px solid ${C.border}`}}>
-          <div style={{fontSize:9,color:C.gray,fontWeight:600,marginBottom:6,letterSpacing:1}}>MCP CONNECTORS</div>
+          <div style={{fontSize:18,color:C.gray,fontWeight:600,marginBottom:6,letterSpacing:1}}>MCP CONNECTORS</div>
           {[["📊","Google Sheets",true],["📧","Gmail 알림",true],["📅","공휴일 API",true],["🗄️","근태 DB",false]]
             .map(([ic,lb,on])=>(
             <div key={lb} style={{display:"flex",alignItems:"center",gap:5,marginBottom:5}}>
-              <span style={{fontSize:10}}>{ic}</span>
-              <span style={{fontSize:9,color:on?"#94a3b8":C.gray,flex:1}}>{lb}</span>
+              <span style={{fontSize:20}}>{ic}</span>
+              <span style={{fontSize:18,color:on?"#94a3b8":C.gray,flex:1}}>{lb}</span>
               <div style={{width:5,height:5,borderRadius:"50%",background:on?C.teal:"#334155"}}/>
             </div>
           ))}
@@ -890,19 +891,19 @@ function PipelinePanel({agentStates,logs,running}){
       </div>
       <div style={{flex:1,display:"flex",flexDirection:"column",background:"#0a1628",overflow:"hidden"}}>
         <div style={{padding:"8px 14px",borderBottom:`1px solid ${C.border}`,
-                     fontSize:10,color:C.gray,fontWeight:600,letterSpacing:1}}>AGENT LOG</div>
-        <div ref={logRef} style={{flex:1,overflowY:"auto",padding:"10px 14px",fontFamily:"Consolas,monospace",fontSize:10}}>
+                     fontSize:20,color:C.gray,fontWeight:600,letterSpacing:1}}>AGENT LOG</div>
+        <div ref={logRef} style={{flex:1,overflowY:"auto",padding:"10px 14px",fontFamily:"Consolas,monospace",fontSize:20}}>
           {logs.length===0&&(
             <div style={{color:C.gray,textAlign:"center",marginTop:40,lineHeight:2.2}}>
               하단 입력창에 자연어로 요청하세요<br/>
-              <span style={{color:"#334155",fontSize:10}}>"요양보호사 01 7월 14일 연차 써줘"</span><br/>
-              <span style={{color:"#334155",fontSize:10}}>"7월 근무표 생성해줘"</span>
+              <span style={{color:"#334155",fontSize:20}}>"요양보호사 01 7월 14일 연차 써줘"</span><br/>
+              <span style={{color:"#334155",fontSize:20}}>"7월 근무표 생성해줘"</span>
             </div>
           )}
           {logs.map((l,i)=>(
             <div key={i} style={{display:"flex",gap:6,marginBottom:3,alignItems:"flex-start"}}>
-              <span style={{color:"#334155",minWidth:55,fontSize:9}}>{l.ts}</span>
-              <span style={{color:C.gray,minWidth:58,fontSize:9,background:"#1a2d4a",
+              <span style={{color:"#334155",minWidth:55,fontSize:18}}>{l.ts}</span>
+              <span style={{color:C.gray,minWidth:58,fontSize:18,background:"#1a2d4a",
                              borderRadius:3,padding:"1px 4px",whiteSpace:"nowrap"}}>
                 {AGENTS.find(a=>a.id===l.agent)?.label.replace(" 에이전트","")}</span>
               <span style={{color:lc(l.type),flex:1,lineHeight:1.5}}>{l.msg}</span>
@@ -924,21 +925,21 @@ function SchedulePanel({scheduleData,staff,requests,holidays,year,month,score,sh
     <div style={{flex:1,overflowX:"auto",overflowY:"auto",padding:16}}>
       {!scheduleData?(
         <div style={{color:C.gray,textAlign:"center",marginTop:60,lineHeight:2.5}}>
-          <div style={{fontSize:32}}>📅</div>
+          <div style={{fontSize:64}}>📅</div>
           <div>근무표가 없습니다</div>
-          <div style={{fontSize:11,color:"#334155"}}>"7월 근무표 생성해줘" 를 입력하세요</div>
+          <div style={{fontSize:22,color:"#334155"}}>"7월 근무표 생성해줘" 를 입력하세요</div>
         </div>
       ):(
         <>
           <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:10,flexWrap:"wrap"}}>
-            <span style={{fontSize:12,color:C.teal,fontWeight:700}}>{year}년 {month}월 근무표 — AI 자동 편성</span>
+            <span style={{fontSize:24,color:C.teal,fontWeight:700}}>{year}년 {month}월 근무표 — AI 자동 편성</span>
             {score&&<span style={{background:score>=80?C.teal:C.amber,color:"#fff",borderRadius:4,
-                                   padding:"2px 8px",fontSize:11,fontWeight:700}}>적합도 {score}/100</span>}
+                                   padding:"2px 8px",fontSize:22,fontWeight:700}}>적합도 {score}/100</span>}
             {sheetsId&&<a href={`https://docs.google.com/spreadsheets/d/${sheetsId}`} target="_blank"
-              style={{fontSize:10,color:C.teal,textDecoration:"none",background:"#0a2a2a",
+              style={{fontSize:20,color:C.teal,textDecoration:"none",background:"#0a2a2a",
                        padding:"2px 8px",borderRadius:4}}>📊 Sheets에서 보기 →</a>}
           </div>
-          <table style={{borderCollapse:"collapse",fontSize:10,minWidth:800}}>
+          <table style={{borderCollapse:"collapse",fontSize:20,minWidth:800}}>
             <thead>
               <tr>
                 <th style={{...th,width:100,background:C.steel,color:"#fff"}}>성명</th>
@@ -952,8 +953,8 @@ function SchedulePanel({scheduleData,staff,requests,holidays,year,month,score,sh
                   return(<th key={d} style={{...th,width:24,
                     background:isH?"#5b1a1a":wd===0?"#3d1a0a":wd===6?"#1a2d4a":C.steel,
                     color:isH?"#fca5a5":wd===0?"#fdba74":"#94a3b8"}}>
-                    <div style={{fontSize:9}}>{d}</div>
-                    <div style={{fontSize:8}}>{WD_KR[wd]}</div>
+                    <div style={{fontSize:18}}>{d}</div>
+                    <div style={{fontSize:16}}>{WD_KR[wd]}</div>
                   </th>);
                 })}
                 {["주","야","공","V"].map(l=><th key={l} style={{...th,width:28,background:"#0a1628",color:C.gray}}>{l}계</th>)}
@@ -965,11 +966,11 @@ function SchedulePanel({scheduleData,staff,requests,holidays,year,month,score,sh
                 let dc=0,nc=0,oc=0,vc=0;
                 const tb=emp.type==="주간전담"?"#2a1a08":emp.type==="야간전담"?"#1a1a3a":"#0d2a1a";
                 return(<tr key={emp.no} style={{background:ri%2===0?"#0d1b2e":"#0a1628"}}>
-                  <td style={{...td,background:tb,fontWeight:700,textAlign:"left",paddingLeft:6,fontSize:9}}>{emp.name}</td>
-                  <td style={{...td,background:tb,color:"#ddd",fontSize:9}}>{emp.role||"요양보호사"}</td>
-                  <td style={{...td,background:tb,color:C.gray,fontSize:9}}>{emp.gender||"여"}</td>
-                  <td style={{...td,background:tb,color:C.gray,fontSize:9}}>{emp.priority||"-"}</td>
-                  <td style={{...td,background:tb,color:C.gray,fontSize:9}}>
+                  <td style={{...td,background:tb,fontWeight:700,textAlign:"left",paddingLeft:6,fontSize:18}}>{emp.name}</td>
+                  <td style={{...td,background:tb,color:"#ddd",fontSize:18}}>{emp.role||"요양보호사"}</td>
+                  <td style={{...td,background:tb,color:C.gray,fontSize:18}}>{emp.gender||"여"}</td>
+                  <td style={{...td,background:tb,color:C.gray,fontSize:18}}>{emp.priority||"-"}</td>
+                  <td style={{...td,background:tb,color:C.gray,fontSize:18}}>
                     {emp.type==="주간전담"?"주전담":emp.type==="야간전담"?"야전담":"순환"}</td>
                   {Array.from({length:total},(_,i)=>i+1).map(d=>{
                     const s=row[d]||"공";
@@ -984,7 +985,7 @@ function SchedulePanel({scheduleData,staff,requests,holidays,year,month,score,sh
                       const totalWork=dc+nc;
                       const minW=emp.minWork??22;
                       const warn=isWork&&i===0&&totalWork<minW;
-                      return <td key={i} style={{...td,fontWeight:700,fontSize:11,
+                      return <td key={i} style={{...td,fontWeight:700,fontSize:22,
                         background:warn?"#5b1a1a":bg,
                         color:warn?"#fca5a5":fg,
                         outline:warn?"2px solid #EF4444":"none",
@@ -999,9 +1000,9 @@ function SchedulePanel({scheduleData,staff,requests,holidays,year,month,score,sh
             {[["주","#F4B942","#fff","주간07~15"],["야","#5B5EA6","#fff","야간22~07"],
               ["공","#A9D18E","#111","비번"],["V","#FFD966","#111","연차"],["H","#EF4444","#fff","공휴일"]]
               .map(([cd,bg,fg,desc])=>(
-              <div key={cd} style={{display:"flex",alignItems:"center",gap:3,fontSize:10}}>
+              <div key={cd} style={{display:"flex",alignItems:"center",gap:3,fontSize:20}}>
                 <div style={{width:18,height:14,background:bg,color:fg,borderRadius:3,
-                              display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:9}}>{cd}</div>
+                              display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:18}}>{cd}</div>
                 <span style={{color:"#64748b"}}>{desc}</span>
               </div>
             ))}
@@ -1050,10 +1051,10 @@ function StaffPanel({staff, setStaff}){
 
   return(
     <div style={{padding:16,overflowY:"auto",flex:1}}>
-      <div style={{fontSize:13,fontWeight:700,color:C.teal,
+      <div style={{fontSize:26,fontWeight:700,color:C.teal,
                    borderBottom:`1px solid ${C.border}`,paddingBottom:6,marginBottom:16}}>
         👥 직원 정보 설정
-        <span style={{fontSize:10,color:C.gray,fontWeight:400,marginLeft:12}}>
+        <span style={{fontSize:20,color:C.gray,fontWeight:400,marginLeft:12}}>
           전체 {staff.length}명 등록
         </span>
       </div>
@@ -1070,27 +1071,27 @@ function StaffPanel({staff, setStaff}){
               <div style={{width:8,height:8,borderRadius:"50%",
                             background:ROLE_COLOR[role]||C.teal,
                             boxShadow:`0 0 6px ${ROLE_COLOR[role]||C.teal}`}}/>
-              <span style={{fontSize:12,fontWeight:700,
+              <span style={{fontSize:24,fontWeight:700,
                              color:ROLE_COLOR[role]||C.teal}}>{role}</span>
-              <span style={{fontSize:10,color:C.gray,
+              <span style={{fontSize:20,color:C.gray,
                              background:"#0a1628",borderRadius:4,
                              padding:"1px 7px"}}>{members.length}명</span>
             </div>
             <button onClick={()=>addStaff(role)}
               style={{background:ROLE_COLOR[role]||C.teal,color:"#fff",
                        border:"none",borderRadius:6,padding:"4px 12px",
-                       fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                       fontSize:20,fontWeight:700,cursor:"pointer"}}>
               + 추가
             </button>
           </div>
 
           {/* 테이블 */}
           <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,minWidth:700}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:20,minWidth:700}}>
               <thead>
                 <tr>{HDR.map(h=>(
                   <th key={h} style={{...th,background:C.steel,color:"#fff",
-                                       padding:"5px 3px",fontSize:9,whiteSpace:"pre-line"}}>
+                                       padding:"5px 3px",fontSize:18,whiteSpace:"pre-line"}}>
                     {h}
                   </th>
                 ))}</tr>
@@ -1106,13 +1107,13 @@ function StaffPanel({staff, setStaff}){
                       <td style={{...td,minWidth:90}}>
                         <input value={s.name}
                           onChange={e=>update(i,"name",e.target.value)}
-                          style={{...inputStyle,fontSize:10,width:"100%"}}/>
+                          style={{...inputStyle,fontSize:20,width:"100%"}}/>
                       </td>
                       {/* 직위 */}
                       <td style={{...td,minWidth:90}}>
                         <select value={s.role}
                           onChange={e=>update(i,"role",e.target.value)}
-                          style={{...selectStyle,fontSize:10,width:"100%"}}>
+                          style={{...selectStyle,fontSize:20,width:"100%"}}>
                           {ROLES.map(r=><option key={r}>{r}</option>)}
                         </select>
                       </td>
@@ -1120,7 +1121,7 @@ function StaffPanel({staff, setStaff}){
                       <td style={{...td,width:50}}>
                         <select value={s.gender||"여"}
                           onChange={e=>update(i,"gender",e.target.value)}
-                          style={{...selectStyle,fontSize:10,width:"100%"}}>
+                          style={{...selectStyle,fontSize:20,width:"100%"}}>
                           <option value="남">남</option>
                           <option value="여">여</option>
                         </select>
@@ -1129,7 +1130,7 @@ function StaffPanel({staff, setStaff}){
                       <td style={{...td,width:60}}>
                         <select value={s.priority??0}
                           onChange={e=>update(i,"priority",Number(e.target.value))}
-                          style={{...selectStyle,fontSize:10,width:"100%"}}>
+                          style={{...selectStyle,fontSize:20,width:"100%"}}>
                           <option value={0}>-</option>
                           {Array.from(
                             {length: staff.filter(x=>x.role==="요양보호사").length + 1},
@@ -1143,7 +1144,7 @@ function StaffPanel({staff, setStaff}){
                       <td style={{...td,minWidth:80}}>
                         <select value={s.type}
                           onChange={e=>update(i,"type",e.target.value)}
-                          style={{...selectStyle,fontSize:10,width:"100%"}}>
+                          style={{...selectStyle,fontSize:20,width:"100%"}}>
                           {["주간전담","야간전담","순환"].map(o=>(
                             <option key={o}>{o}</option>
                           ))}
@@ -1154,26 +1155,26 @@ function StaffPanel({staff, setStaff}){
                         {s.type==="순환"
                           ? <input type="number" min={0} max={5} value={s.offset??0}
                               onChange={e=>update(i,"offset",Number(e.target.value))}
-                              style={{...inputStyle,width:40,fontSize:10,textAlign:"center"}}/>
+                              style={{...inputStyle,width:70,fontSize:20,textAlign:"center"}}/>
                           : <span style={{color:C.gray}}>—</span>}
                       </td>
                       {/* 연차 */}
                       <td style={{...td,width:50}}>
                         <input type="number" min={0} max={25} value={s.leave}
                           onChange={e=>update(i,"leave",Number(e.target.value))}
-                          style={{...inputStyle,width:40,fontSize:10,textAlign:"center"}}/>
+                          style={{...inputStyle,width:70,fontSize:20,textAlign:"center"}}/>
                       </td>
                       {/* 야간수당 */}
                       <td style={{...td,width:75}}>
                         <input type="number" min={0} value={s.wage}
                           onChange={e=>update(i,"wage",Number(e.target.value))}
-                          style={{...inputStyle,width:66,fontSize:10,textAlign:"center"}}/>
+                          style={{...inputStyle,width:110,fontSize:20,textAlign:"center"}}/>
                       </td>
                       {/* 최소근무 */}
                       <td style={{...td,width:55}}>
                         <input type="number" min={1} max={31} value={s.minWork??22}
                           onChange={e=>update(i,"minWork",Number(e.target.value))}
-                          style={{...inputStyle,width:44,fontSize:10,textAlign:"center",
+                          style={{...inputStyle,width:130,fontSize:20,textAlign:"center",
                             borderColor:(s.minWork??22)<22?C.red:C.steel}}/>
                       </td>
                       {/* 삭제 */}
@@ -1181,7 +1182,7 @@ function StaffPanel({staff, setStaff}){
                         <button onClick={()=>delStaff(i)}
                           style={{background:"#5b1a1a",color:"#fca5a5",border:"none",
                                    borderRadius:4,padding:"3px 7px",
-                                   fontSize:10,cursor:"pointer",fontWeight:700}}>
+                                   fontSize:20,cursor:"pointer",fontWeight:700}}>
                           ✕
                         </button>
                       </td>
@@ -1197,7 +1198,7 @@ function StaffPanel({staff, setStaff}){
       {/* 새 직위 섹션 추가 */}
       <div style={{padding:12,background:"#0a1628",borderRadius:8,
                    border:`1px solid ${C.border}`,marginTop:4}}>
-        <div style={{fontSize:10,color:C.gray,marginBottom:8,fontWeight:600}}>
+        <div style={{fontSize:20,color:C.gray,marginBottom:8,fontWeight:600}}>
           직위별 직원 추가
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -1207,7 +1208,7 @@ function StaffPanel({staff, setStaff}){
                        color:ROLE_COLOR[role]||C.teal,
                        border:`1px solid ${ROLE_COLOR[role]||C.teal}66`,
                        borderRadius:6,padding:"5px 12px",
-                       fontSize:10,cursor:"pointer",fontWeight:600}}>
+                       fontSize:20,cursor:"pointer",fontWeight:600}}>
               + {role}
             </button>
           ))}
@@ -1239,10 +1240,10 @@ function HolidayPanel({holidays,setHolidays,year,month}){
           <span style={{color:C.gray,minWidth:20}}>{WD_KR[new Date(year,month-1,Number(d)).getDay()]}</span>
           <span style={{flex:1,color:"#fca5a5"}}>{nm}</span>
           <button onClick={()=>setHolidays(p=>{const n={...p};delete n[d];return n;})}
-            style={{...btnStyle("#5b1a1a"),padding:"2px 8px",fontSize:10}}>삭제</button>
+            style={{...btnStyle("#5b1a1a"),padding:"2px 8px",fontSize:20}}>삭제</button>
         </div>
       ))}
-      {Object.keys(holidays).length===0&&<div style={{color:C.gray,fontSize:12}}>등록된 공휴일 없음</div>}
+      {Object.keys(holidays).length===0&&<div style={{color:C.gray,fontSize:24}}>등록된 공휴일 없음</div>}
     </div>
   );
 }
@@ -1272,11 +1273,11 @@ function RequestPanel({staff,requests,setRequests,year,month}){
         <button onClick={add} style={btnStyle()}>추가</button>
         <button onClick={()=>setRequests({})} style={{...btnStyle("#5b1a1a")}}>전체 초기화</button>
       </div>
-      <div style={{fontSize:10,color:C.gray,marginBottom:8}}>
+      <div style={{fontSize:20,color:C.gray,marginBottom:8}}>
         ※ 자연어 입력창에서도 추가 가능 — "요양보호사 01 14일 연차 써줘"
       </div>
-      {allReqs.length===0?<div style={{color:C.gray,fontSize:12}}>등록된 요청 없음</div>:(
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+      {allReqs.length===0?<div style={{color:C.gray,fontSize:24}}>등록된 요청 없음</div>:(
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:22}}>
           <thead><tr>{["성명","날짜","요일","유형","삭제"].map(h=>(
             <th key={h} style={{...th,background:C.steel,color:"#fff",padding:"6px 4px"}}>{h}</th>))}</tr></thead>
           <tbody>{allReqs.map(({name,d,type:t},i)=>(
@@ -1288,7 +1289,7 @@ function RequestPanel({staff,requests,setRequests,year,month}){
                 padding:"2px 8px",fontWeight:700}}>{t}</span></td>
               <td style={td}><button onClick={()=>setRequests(p=>{const n={...p};
                 if(n[name]){const m={...n[name]};delete m[d];n[name]=m;}return n;})}
-                style={{...btnStyle("#5b1a1a"),padding:"2px 8px",fontSize:10}}>삭제</button></td>
+                style={{...btnStyle("#5b1a1a"),padding:"2px 8px",fontSize:20}}>삭제</button></td>
             </tr>))}</tbody>
         </table>
       )}
@@ -1305,14 +1306,14 @@ function WagePanel({hourly,setHourly,nightHrs,setNightHrs,staff}){
       <div style={{display:"flex",gap:24,flexWrap:"wrap",marginBottom:20}}>
         {[["통상 시급 (원)",hourly,setHourly,120],["월 야간 근무시간 (시간)",nightHrs,setNightHrs,80]].map(([lbl,val,setter,w])=>(
           <div key={lbl}>
-            <div style={{fontSize:11,color:C.gray,marginBottom:4}}>{lbl}</div>
+            <div style={{fontSize:22,color:C.gray,marginBottom:4}}>{lbl}</div>
             <input type="number" value={val} onChange={e=>setter(Number(e.target.value))}
-              style={{...inputStyle,width:w,fontSize:13,fontWeight:700}}/>
+              style={{...inputStyle,width:w,fontSize:26,fontWeight:700}}/>
           </div>
         ))}
       </div>
       <div style={sectionTitle}>야간 근무자 예상 수당</div>
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:22}}>
         <thead><tr>{["성명","유형","야간가산수당","전담수당","합계"].map(h=>(
           <th key={h} style={{...th,background:C.steel,color:"#fff",padding:"6px 4px"}}>{h}</th>))}</tr></thead>
         <tbody>{nightOnly.map((s,i)=>{
@@ -1320,7 +1321,7 @@ function WagePanel({hourly,setHourly,nightHrs,setNightHrs,staff}){
           const bg=s.type==="야간전담"?"#1a1a3a":"#0d2a1a";
           return(<tr key={s.no}>
             <td style={{...td,background:bg,textAlign:"left",paddingLeft:8,fontWeight:700}}>{s.name}</td>
-            <td style={{...td,background:bg,fontSize:9,color:C.gray}}>{s.type==="야간전담"?"야전담":"순환"}</td>
+            <td style={{...td,background:bg,fontSize:18,color:C.gray}}>{s.type==="야간전담"?"야전담":"순환"}</td>
             <td style={td}>{nAdd.toLocaleString()}원</td>
             <td style={{...td,background:"#2a2a10"}}>{s.type==="야간전담"
               ?<span style={{color:C.amber,fontWeight:700}}>{fixed.toLocaleString()}원</span>
@@ -1355,17 +1356,17 @@ function RulesPanel({rules, setRules, staff}){
     checked ? cur.delete(wd) : cur.add(wd);
     return {...p, [key]:[...cur]};
   });
-  const S = {fontSize:13,fontWeight:700,color:C.teal,
+  const S = {fontSize:26,fontWeight:700,color:C.teal,
     borderBottom:`1px solid ${C.border}`,paddingBottom:6,marginBottom:12};
   const row = {display:"flex",alignItems:"center",gap:12,marginBottom:12,flexWrap:"wrap"};
-  const lbl = {fontSize:11,color:"#94a3b8",minWidth:160};
+  const lbl = {fontSize:22,color:"#94a3b8",minWidth:160};
   const numIn = (val, key, min, max, unit="일") => (
     <div style={{display:"flex",alignItems:"center",gap:6}}>
       <input type="number" min={min} max={max} value={val}
         onChange={e=>upd(key,Number(e.target.value))}
-        style={{...inputStyle,width:60,fontSize:13,fontWeight:700,
+        style={{...inputStyle,width:60,fontSize:26,fontWeight:700,
                 borderColor:val<min||val>max?C.red:C.steel,textAlign:"center"}}/>
-      <span style={{fontSize:10,color:C.gray}}>{unit}</span>
+      <span style={{fontSize:20,color:C.gray}}>{unit}</span>
     </div>
   );
   return (
@@ -1376,32 +1377,32 @@ function RulesPanel({rules, setRules, staff}){
         <div style={row}>
           <span style={lbl}>📅 월 최소 근무일</span>
           {numIn(rules.minWorkDays??22,"minWorkDays",1,31)}
-          <span style={{fontSize:10,color:C.amber}}>※ 미달 시 공가→근무 자동 전환</span>
+          <span style={{fontSize:20,color:C.amber}}>※ 미달 시 공가→근무 자동 전환</span>
         </div>
         <div style={row}>
           <span style={lbl}>📅 월 최대 근무일</span>
           {numIn(rules.maxWorkDays??26,"maxWorkDays",1,31)}
-          <span style={{fontSize:10,color:C.gray}}>※ 초과 시 근무→공가 자동 전환</span>
+          <span style={{fontSize:20,color:C.gray}}>※ 초과 시 근무→공가 자동 전환</span>
         </div>
         <div style={row}>
           <span style={lbl}>🔁 최대 연속 근무일</span>
           {numIn(rules.maxConsec??5,"maxConsec",1,10)}
-          <span style={{fontSize:10,color:C.gray}}>일 연속 후 공가 1일 필수</span>
+          <span style={{fontSize:20,color:C.gray}}>일 연속 후 공가 1일 필수</span>
         </div>
         <div style={row}>
           <span style={lbl}>🌙 야간 후 최소 휴식</span>
           {numIn(rules.nightRest??11,"nightRest",8,24,"시간")}
-          <span style={{fontSize:10,color:C.gray}}>근로기준법 권고 11시간</span>
+          <span style={{fontSize:20,color:C.gray}}>근로기준법 권고 11시간</span>
         </div>
         <div style={row}>
           <span style={lbl}>👥 주간 최소 인원</span>
           {numIn(rules.minDay??2,"minDay",1,10,"명")}
-          <span style={{fontSize:10,color:C.gray}}>법정 최소 2명</span>
+          <span style={{fontSize:20,color:C.gray}}>법정 최소 2명</span>
         </div>
         <div style={row}>
           <span style={lbl}>🌙 야간 최소 인원</span>
           {numIn(rules.minNight??2,"minNight",1,10,"명")}
-          <span style={{fontSize:10,color:C.gray}}>법정 최소 2명</span>
+          <span style={{fontSize:20,color:C.gray}}>법정 최소 2명</span>
         </div>
       </div>
 
@@ -1411,7 +1412,7 @@ function RulesPanel({rules, setRules, staff}){
         {[["주간전담","dayExclude"],["야간전담","nightExclude"],["순환","rotExclude"]]
           .map(([type,key])=>(
           <div key={type} style={{marginBottom:14}}>
-            <div style={{fontSize:11,fontWeight:700,color:C.white,
+            <div style={{fontSize:22,fontWeight:700,color:C.white,
                          marginBottom:8,padding:"3px 10px",borderRadius:4,
                          background:type==="주간전담"?"#3a2008":type==="야간전담"?"#1a1a4a":"#0d3a1a",
                          display:"inline-block"}}>{type}</div>
@@ -1424,7 +1425,7 @@ function RulesPanel({rules, setRules, staff}){
                                           background:excl?"#5b1a1a":"#1a2d4a",
                                           border:`1px solid ${excl?C.red:C.border}`,
                                           borderRadius:6,padding:"4px 10px",
-                                          fontSize:11,color:excl?"#fca5a5":C.white,
+                                          fontSize:22,color:excl?"#fca5a5":C.white,
                                           transition:"all 0.2s"}}>
                     <input type="checkbox" checked={excl}
                       onChange={e=>updExclude(key,i,!e.target.checked)}
@@ -1434,7 +1435,7 @@ function RulesPanel({rules, setRules, staff}){
                 );
               })}
             </div>
-            <div style={{fontSize:10,color:C.gray,marginTop:4}}>
+            <div style={{fontSize:20,color:C.gray,marginTop:4}}>
               {(rules[key]||[]).length===0?"제외 없음":
                 `제외: ${(rules[key]||[]).map(i=>WD[i]).join(", ")}요일`}
             </div>
@@ -1445,7 +1446,7 @@ function RulesPanel({rules, setRules, staff}){
       <div style={S}>🤝 직원 페어링 설정</div>
       <div style={{background:C.dark,borderRadius:8,padding:16,
                    border:`1px solid ${C.border}`,marginBottom:20}}>
-        <div style={{fontSize:10,color:C.gray,marginBottom:12}}>
+        <div style={{fontSize:20,color:C.gray,marginBottom:12}}>
           지정한 두 직원을 항상 같은 조 또는 반드시 다른 조로 배정합니다.
         </div>
         {(rules.pairs||[]).map((pair,i)=>(
@@ -1468,23 +1469,23 @@ function RulesPanel({rules, setRules, staff}){
             </select>
             <button onClick={()=>delPair(i)}
               style={{background:"#5b1a1a",color:"#fff",border:"none",
-                      borderRadius:4,padding:"4px 10px",fontSize:10,cursor:"pointer"}}>
+                      borderRadius:4,padding:"4px 10px",fontSize:20,cursor:"pointer"}}>
               삭제
             </button>
           </div>
         ))}
         <button onClick={addPair}
           style={{background:C.steel,color:"#fff",border:"none",borderRadius:4,
-                  padding:"5px 14px",fontSize:11,fontWeight:600,cursor:"pointer",marginTop:4}}>
+                  padding:"5px 14px",fontSize:22,fontWeight:600,cursor:"pointer",marginTop:4}}>
           + 페어링 추가
         </button>
         {(rules.pairs||[]).length===0&&
-          <div style={{fontSize:10,color:"#334155",marginTop:8}}>등록된 페어링 없음</div>}
+          <div style={{fontSize:20,color:"#334155",marginTop:8}}>등록된 페어링 없음</div>}
       </div>
 
       <div style={S}>📋 현재 적용 기준 요약</div>
       <div style={{background:"#0a1628",borderRadius:8,padding:14,
-                   border:`1px solid ${C.border}`,fontSize:10,
+                   border:`1px solid ${C.border}`,fontSize:20,
                    color:"#94a3b8",lineHeight:2.4}}>
         ✅ 월 근무일: 최소 <b style={{color:C.teal}}>{rules.minWorkDays??22}일</b>
           &nbsp;~&nbsp; 최대 <b style={{color:C.teal}}>{rules.maxWorkDays??26}일</b><br/>
@@ -1530,9 +1531,9 @@ function SetupGuide(){
         ],"#0d2a1a"],
       ].map(([title,steps,bg])=>(
         <div key={title} style={{background:bg,borderRadius:8,padding:14,marginBottom:12,border:`1px solid ${C.border}`}}>
-          <div style={{fontWeight:700,color:C.teal,fontSize:12,marginBottom:8}}>{title}</div>
+          <div style={{fontWeight:700,color:C.teal,fontSize:24,marginBottom:8}}>{title}</div>
           {steps.map((s,i)=>(
-            <div key={i} style={{display:"flex",gap:8,marginBottom:4,fontSize:11,color:"#94a3b8"}}>
+            <div key={i} style={{display:"flex",gap:8,marginBottom:4,fontSize:22,color:"#94a3b8"}}>
               <span style={{color:C.steel,minWidth:16,fontWeight:700}}>{i+1}.</span>
               <span>{s}</span>
             </div>
@@ -1540,8 +1541,8 @@ function SetupGuide(){
         </div>
       ))}
       <div style={{background:"#0a1628",borderRadius:8,padding:14,border:`1px solid ${C.border}`}}>
-        <div style={{fontWeight:700,color:C.amber,fontSize:12,marginBottom:8}}>📋 Apps Script 알림 코드 (선택)</div>
-        <pre style={{fontSize:9,color:"#94a3b8",overflow:"auto",margin:0,lineHeight:1.6}}>{`// 매월 근무표 생성 후 관리자 이메일 발송
+        <div style={{fontWeight:700,color:C.amber,fontSize:24,marginBottom:8}}>📋 Apps Script 알림 코드 (선택)</div>
+        <pre style={{fontSize:18,color:"#94a3b8",overflow:"auto",margin:0,lineHeight:1.6}}>{`// 매월 근무표 생성 후 관리자 이메일 발송
 function sendMonthlyReport() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName('근무표');
@@ -1709,8 +1710,8 @@ export default function App(){
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:7,height:7,borderRadius:"50%",background:C.teal,
                         boxShadow:`0 0 8px ${C.teal}`,animation:"pulse 2s infinite"}}/>
-          <span style={{fontWeight:700,fontSize:13}}>요양보호사 AI 근무표 에이전트</span>
-          <span style={{fontSize:9,color:C.gray,background:"#1a2d4a",padding:"2px 6px",borderRadius:3}}>
+          <span style={{fontWeight:700,fontSize:26}}>요양보호사 AI 근무표 에이전트</span>
+          <span style={{fontSize:18,color:C.gray,background:"#1a2d4a",padding:"2px 6px",borderRadius:3}}>
             Level 3 · Sheets 연동
           </span>
         </div>
@@ -1722,7 +1723,7 @@ export default function App(){
             {Array.from({length:12},(_,i)=>i+1).map(m=><option key={m} value={m}>{m}월</option>)}
           </select>
           {score&&<span style={{background:score>=80?C.teal:C.amber,color:"#fff",
-                                 borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:700}}>
+                                 borderRadius:4,padding:"2px 8px",fontSize:20,fontWeight:700}}>
             적합도 {score}/100</span>}
           <ConnectBadge status={sheetsStatus} onConnect={connectSheets} onLoad={loadFromSheets}/>
         </div>
@@ -1735,7 +1736,7 @@ export default function App(){
           <button key={id} onClick={()=>setTab(id)}
             style={{background:tab===id?C.steel:"transparent",color:tab===id?"#fff":C.gray,
                     border:"none",borderRadius:"5px 5px 0 0",padding:"6px 12px",
-                    fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
+                    fontSize:22,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
             {label}
           </button>
         ))}
@@ -1760,17 +1761,17 @@ export default function App(){
                    padding:"10px 16px",display:"flex",gap:8,alignItems:"flex-end"}}>
         <div style={{flex:1,background:"#0a1628",borderRadius:8,border:`1px solid ${C.steel}`,
                      padding:"7px 10px",display:"flex",gap:6,alignItems:"center"}}>
-          <span style={{color:C.teal,fontSize:12,fontFamily:"monospace"}}>▶</span>
+          <span style={{color:C.teal,fontSize:24,fontFamily:"monospace"}}>▶</span>
           <textarea value={input} onChange={e=>setInput(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();run();}}}
             placeholder={"자연어로 요청하세요  (Enter=실행)\n예) \"요양보호사 01 7월 14일 연차 써줘\"  /  \"7월 근무표 생성해줘\""}
             rows={2} disabled={running}
             style={{flex:1,background:"transparent",border:"none",outline:"none",
-                    color:C.white,fontSize:11,fontFamily:"inherit",resize:"none",lineHeight:1.6}}/>
+                    color:C.white,fontSize:22,fontFamily:"inherit",resize:"none",lineHeight:1.6}}/>
         </div>
         <button onClick={run} disabled={running||!input.trim()}
           style={{background:running?C.gray:C.teal,color:"#fff",border:"none",borderRadius:8,
-                  padding:"10px 18px",fontSize:12,fontWeight:700,cursor:running?"not-allowed":"pointer",
+                  padding:"10px 18px",fontSize:24,fontWeight:700,cursor:running?"not-allowed":"pointer",
                   minWidth:60,boxShadow:!running&&input.trim()?`0 0 10px ${C.teal}66`:"none"}}>
           {running?"실행중":"실행"}
         </button>
