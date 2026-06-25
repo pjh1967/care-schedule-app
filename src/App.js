@@ -12,6 +12,7 @@ const GAPI_CONFIG = {
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
+
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -1699,12 +1700,11 @@ export default function App(){
     try {
       const cfg = await Sheets.readConfig();
       setYear(cfg.year); setMonth(cfg.month);
-      // Sheets 직원 데이터가 현재보다 많거나 같을 때만 적용
-      // (구버전 10명 데이터가 신버전 22명을 덮어쓰지 않도록)
-      if(cfg.staff && cfg.staff.length >= 10){
-        if(!silent || cfg.staff.length >= staff.length){
-          setStaffSafe(cfg.staff);
-        }
+      if(cfg.staff && cfg.staff.length > 0){
+        // 수동 불러오기(silent=false): 무조건 적용
+        // 자동 불러오기(silent=true): 현재 직원 수보다 많을 때만 적용
+        if(!silent) setStaffSafe(cfg.staff);
+        else if(cfg.staff.length >= 10) setStaffSafe(cfg.staff);
       }
       setHolidays(cfg.holidays);
       setHourly(cfg.hourly); setNightHrs(cfg.nightHrs);
