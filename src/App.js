@@ -292,12 +292,15 @@ const Sheets = {
     const rows = await this.read(`${SHEET_NAMES.CONFIG}!A1:L60`);
     const staff=[]; const holidays={}; let hourly=12000, nightHrs=176, year=2025, month=7;
     rows.forEach((row,i)=>{
-      if(row[0]==="YEAR")    year     = Number(row[1])||2025;
-      if(row[0]==="MONTH")   month    = Number(row[1])||7;
-      if(row[0]==="HOURLY")  hourly   = Number(row[1])||12000;
-      if(row[0]==="NIGHTH")  nightHrs = Number(row[1])||176;
-      // HOL_DATE 형식: ["HOL_DATE", 날짜, 이름] 또는 숫자키
+      // 시트 구조: YEAR|대상연도||2025 → row[3]에 값
+      if(row[0]==="YEAR")    year     = Number(row[3])||2025;
+      if(row[0]==="MONTH")   month    = Number(row[3])||7;
+      if(row[0]==="HOURLY")  hourly   = Number(row[3])||12000;
+      if(row[0]==="NIGHTH")  nightHrs = Number(row[3])||176;
+      // HOL_DATE: row[0]=HOL_DATE, row[1]=날짜, row[2]=이름
       if(row[0]==="HOL_DATE"&&row[1]&&row[2]) holidays[Number(row[1])]=String(row[2]);
+      // STAFF: row[0]=STAFF, row[1]=no, row[2]=성명, row[3]=직위, row[4]=성별,
+      //        row[5]=업무순위, row[6]=근무유형, row[7]=오프셋, row[8]=연차, row[9]=야간수당, row[10]=최소근무
       if(row[0]==="STAFF") {
         staff.push({
           no      : Number(row[1]),
