@@ -12,7 +12,6 @@ const GAPI_CONFIG = {
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
-
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -551,9 +550,9 @@ const Sheets = {
       fields:"userEnteredFormat.backgroundColor",
     }});
 
-    // 행 고정 (헤더 2행, 컬럼 5열)
+    // 행 고정만 적용 (열 고정은 병합 셀과 충돌)
     styleReqs.push({updateSheetProperties:{
-      properties:{sheetId,gridProperties:{frozenRowCount:2,frozenColumnCount:5}},
+      properties:{sheetId,gridProperties:{frozenRowCount:2,frozenColumnCount:0}},
       fields:"gridProperties.frozenRowCount,gridProperties.frozenColumnCount",
     }});
 
