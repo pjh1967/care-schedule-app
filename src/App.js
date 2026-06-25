@@ -13,6 +13,7 @@ const GAPI_CONFIG = {
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
 
+
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -1665,17 +1666,22 @@ export default function App(){
     try {
       await Sheets.init();
       await Sheets._initTokenClient();
-      // sessionStorage에 유효한 토큰 있으면 팝업 없이 자동 연결
+      // sessionStorage에 유효한 토큰 있으면 복원 시도
       if(Sheets._loadToken()){
         window.gapi.client.setToken({access_token: Sheets._token});
+        // 실제 API 호출로 연결 검증
+        await window.gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: GAPI_CONFIG.SPREADSHEET_ID,
+          range: `${SHEET_NAMES.CONFIG}!A1:A1`,
+        });
         setSheetsStatus("connected");
         return;
       }
-      // 토큰 없으면 조용히 갱신 시도 (prompt 없음)
+      // 토큰 없으면 조용히 갱신 시도
       await Sheets._getToken(false);
       setSheetsStatus("connected");
     } catch(e){
-      // 자동 연결 실패 → 사용자가 직접 버튼 클릭 필요
+      // 자동 연결 실패 → idle 상태로 수동 연결 유도
       setSheetsStatus("idle");
     }
   };
