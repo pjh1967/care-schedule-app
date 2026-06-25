@@ -9,10 +9,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const GAPI_CONFIG = {
   CLIENT_ID    : "575088677348-i8s653ni326sj9e7jpl6ikjrgbbrdfup.apps.googleusercontent.com",
   API_KEY      : "AIzaSyA17IdNlmepK2eK3riUzqH489BVJ-uGyww",
-  SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
+  SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
-
 
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
