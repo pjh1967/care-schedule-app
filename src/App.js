@@ -12,7 +12,6 @@ const GAPI_CONFIG = {
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
-
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -1690,19 +1689,10 @@ export default function App(){
   // Sheets에서 설정 불러오기
   const loadFromSheets = async (silent=false) => {
     if(!sheetsReady) return;
-    // 수동 불러오기 시 확인 팝업
-    if(!silent){
-      const ok = window.confirm(
-        "⚠ Google Sheets에서 설정을 불러오면\n현재 앱의 직원 정보가 Sheets 데이터로 교체됩니다.\n\n계속하시겠습니까?"
-      );
-      if(!ok) return;
-    }
     try {
       const cfg = await Sheets.readConfig();
       setYear(cfg.year); setMonth(cfg.month);
       if(cfg.staff && cfg.staff.length > 0){
-        // 수동 불러오기(silent=false): 무조건 적용
-        // 자동 불러오기(silent=true): 현재 직원 수보다 많을 때만 적용
         if(!silent) setStaffSafe(cfg.staff);
         else if(cfg.staff.length >= 10) setStaffSafe(cfg.staff);
       }
