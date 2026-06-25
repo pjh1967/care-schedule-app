@@ -317,6 +317,10 @@ const Sheets = {
 
   // ── 설정 시트 쓰기
   async writeConfig(year, month, staff, holidays, hourly, nightHrs) {
+    if(!GAPI_CONFIG.SPREADSHEET_ID || GAPI_CONFIG.SPREADSHEET_ID.includes("여기에"))
+      throw new Error("SPREADSHEET_ID가 설정되지 않았습니다.");
+    if(!staff || !Array.isArray(staff))
+      throw new Error("직원 데이터가 없습니다.");
     await this._ensureToken();
     const rows = [
       ["YEAR",   year],
@@ -327,7 +331,7 @@ const Sheets = {
         s.gender||"여", s.priority||3, s.type, s.offset??"-", s.leave, s.wage, s.minWork??22]),
       ...Object.entries(holidays).map(([d,nm])=>["HOL", d, nm]),
     ];
-    await this.write(`${SHEET_NAMES.CONFIG}!A1:G${rows.length+2}`, rows);
+    await this.write(`${SHEET_NAMES.CONFIG}!A1:L${rows.length+2}`, rows);
   },
 
   // ── 요청 시트 읽기
@@ -367,6 +371,8 @@ const Sheets = {
 
   // ── 근무표 시트 쓰기 (값 + 색상)
   async writeSchedule(scheduleData, staff, year, month, holidays, violations, score) {
+    if(!GAPI_CONFIG.SPREADSHEET_ID || GAPI_CONFIG.SPREADSHEET_ID.includes("여기에"))
+      throw new Error("SPREADSHEET_ID가 설정되지 않았습니다.");
     await this._ensureToken();
     const total   = daysIn(year, month);
     const sheetId = await this.getSheetId(SHEET_NAMES.SCHEDULE);
@@ -788,8 +794,10 @@ async function runPipeline(request, staff, y, m, holidays, requests, hourly, nig
 
       log("output","✅ Google Sheets 전체 동기화 완료","success");
     } catch(e){
-      log("output",`Sheets 오류: ${e.message}`,"error");
+      const errMsg = e?.message || e?.result?.error?.message || JSON.stringify(e) || "알 수 없는 오류";
+      log("output",`Sheets 오류: ${errMsg}`,"error");
       log("output","앱 내 데이터는 저장됨 — Sheets 연결 확인 필요","warn");
+      console.error("Sheets 상세 오류:", e);
     }
   } else {
     log("output","⚠ Sheets 미연결 — 앱 내 상태만 저장","warn");
@@ -1565,7 +1573,17 @@ function sendMonthlyReport() {
 export default function App(){
   const [year,setYear]   = useState(2025);
   const [month,setMonth] = useState(7);
-  const [staff,setStaff] = useState(DEFAULT_STAFF);
+  const [staff,setStaff] = useState(()=>{
+    // sessionStorage에서 직원 정보 복원 (페이지 새로고침 대비)
+    try {
+      const saved = sessionStorage.getItem("staff_data");
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(parsed && parsed.length >= 10) return parsed;
+      }
+    } catch(e){}
+    return DEFAULT_STAFF;
+  });
   const [holidays,setHolidays]  = useState({17:"제헌절"});
   const [requests,setRequests]  = useState({});
   const [hourly,setHourly]      = useState(12000);
@@ -1584,6 +1602,15 @@ export default function App(){
   const [input,setInput]        = useState("");
   const [tab,setTab]            = useState("pipeline");
   const [sheetsStatus,setSheetsStatus] = useState("idle"); // idle|loading|connected|error
+
+  // staff 변경 시 sessionStorage에 자동 저장
+  const setStaffSafe = useCallback((updater)=>{
+    setStaff(prev=>{
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      try { sessionStorage.setItem("staff_data", JSON.stringify(next)); } catch(e){}
+      return next;
+    });
+  },[]);
 
   const addLog   = useCallback(e=>setLogs(p=>[...p.slice(-80),e]),[]);
   const setState = useCallback((id,s)=>setAgentStates(p=>({...p,[id]:s})),[]);
@@ -1673,8 +1700,13 @@ export default function App(){
     try {
       const cfg = await Sheets.readConfig();
       setYear(cfg.year); setMonth(cfg.month);
-      // Sheets 직원 데이터가 유효한 경우만 적용
-      if(cfg.staff && cfg.staff.length > 0) setStaff(cfg.staff);
+      // Sheets 직원 데이터가 현재보다 많거나 같을 때만 적용
+      // (구버전 10명 데이터가 신버전 22명을 덮어쓰지 않도록)
+      if(cfg.staff && cfg.staff.length >= 10){
+        if(!silent || cfg.staff.length >= staff.length){
+          setStaffSafe(cfg.staff);
+        }
+      }
       setHolidays(cfg.holidays);
       setHourly(cfg.hourly); setNightHrs(cfg.nightHrs);
       const req = await Sheets.readRequests();
@@ -1754,7 +1786,7 @@ export default function App(){
         {tab==="schedule"&&<SchedulePanel scheduleData={scheduleData} staff={staff} requests={requests}
           holidays={holidays} year={year} month={month} score={score}
           sheetsId={sheetsReady?GAPI_CONFIG.SPREADSHEET_ID:null}/>}
-        {tab==="staff"   &&<StaffPanel staff={staff} setStaff={setStaff}/>}
+        {tab==="staff"   &&<StaffPanel staff={staff} setStaff={setStaffSafe}/>}
         {tab==="holiday" &&<HolidayPanel holidays={holidays} setHolidays={setHolidays} year={year} month={month}/>}
         {tab==="request" &&<RequestPanel staff={staff} requests={requests} setRequests={setRequests} year={year} month={month}/>}
         {tab==="wage"    &&<WagePanel hourly={hourly} setHourly={setHourly} nightHrs={nightHrs} setNightHrs={setNightHrs} staff={staff}/>}
