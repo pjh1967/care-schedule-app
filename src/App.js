@@ -12,6 +12,7 @@ const GAPI_CONFIG = {
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",   // URL의 /d/XXXX/edit 에서 XXXX 부분
   SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
 };
+
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
   navy:"#0F2040", steel:"#1E4D8C", teal:"#00B4A6",
@@ -288,20 +289,22 @@ const Sheets = {
 
   // ── 설정 시트 읽기 → staff/holidays/기준값 파싱
   async readConfig() {
-    const rows = await this.read(`${SHEET_NAMES.CONFIG}!A1:G40`);
+    const rows = await this.read(`${SHEET_NAMES.CONFIG}!A1:L60`);
     const staff=[]; const holidays={}; let hourly=12000, nightHrs=176, year=2025, month=7;
     rows.forEach((row,i)=>{
       if(row[0]==="YEAR")    year     = Number(row[1])||2025;
       if(row[0]==="MONTH")   month    = Number(row[1])||7;
       if(row[0]==="HOURLY")  hourly   = Number(row[1])||12000;
       if(row[0]==="NIGHTH")  nightHrs = Number(row[1])||176;
+      // HOL_DATE 형식: ["HOL_DATE", 날짜, 이름] 또는 숫자키
+      if(row[0]==="HOL_DATE"&&row[1]&&row[2]) holidays[Number(row[1])]=String(row[2]);
       if(row[0]==="STAFF") {
         staff.push({
           no      : Number(row[1]),
           name    : String(row[2]).trim(),
           role    : String(row[3]).trim()||"요양보호사",
           gender  : String(row[4]).trim()||"여",
-          priority: Number(row[5])||3,
+          priority: Number(row[5])||0,
           type    : String(row[6]).trim()||"주간전담",
           offset  : row[7]==="-"||row[7]===""?null:Number(row[7]),
           leave   : Number(row[8])||15,
@@ -1701,7 +1704,12 @@ export default function App(){
       const req = await Sheets.readRequests();
       setRequests(req);
       if(!silent) alert("✅ Google Sheets에서 설정을 불러왔습니다.");
-    } catch(e){ alert("불러오기 실패: "+e.message); }
+    } catch(e){
+      const msg = e?.message || e?.result?.error?.message || JSON.stringify(e) || "알 수 없는 오류";
+      console.error("loadFromSheets 오류:", e);
+      alert("불러오기 실패: "+msg+
+        "\n\n확인사항:\n1. Sheets 연결 상태 확인\n2. 설정 시트 존재 여부 확인\n3. Apps Script 초기화 실행 필요");
+    }
   };
 
   const run = async () => {
