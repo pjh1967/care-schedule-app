@@ -290,7 +290,13 @@ const Sheets = {
   // ── 설정 시트 읽기 → staff/holidays/기준값 파싱
   async readConfig() {
     const rows = await this.read(`${SHEET_NAMES.CONFIG}!A1:L60`);
-    const staff=[]; const holidays={}; let hourly=12000, nightHrs=176, year=2025, month=7;
+    const staff=[]; const holidays={};
+    let hourly=12000, nightHrs=176, year=2025, month=7;
+    const rules={
+      minWorkDays:22, maxWorkDays:26, maxConsec:5,
+      nightRest:11, minDay:2, minNight:2,
+      dayExclude:[], nightExclude:[], rotExclude:[], pairs:[],
+    };
     rows.forEach((row,i)=>{
       // 시트 구조: YEAR|대상연도||2025 → row[3]에 값
       if(row[0]==="YEAR")    year     = Number(row[3])||2025;
@@ -299,6 +305,15 @@ const Sheets = {
       if(row[0]==="NIGHTH")  nightHrs = Number(row[3])||176;
       // HOL_DATE: row[0]=HOL_DATE, row[1]=날짜, row[2]=이름
       if(row[0]==="HOL_DATE"&&row[1]&&row[2]) holidays[Number(row[1])]=String(row[2]);
+      // RULE: row[0]=RULE, row[1]=키, row[2]=값
+      if(row[0]==="RULE"&&row[1]){
+        const k=String(row[1]), v=row[2];
+        if(["dayExclude","nightExclude","rotExclude","pairs"].includes(k)){
+          try{ rules[k]=JSON.parse(String(v)); }catch(e){ rules[k]=[]; }
+        } else {
+          rules[k]=Number(v)||0;
+        }
+      }
       // STAFF: row[0]=STAFF, row[1]=no, row[2]=성명, row[3]=직위, row[4]=성별,
       //        row[5]=업무순위, row[6]=근무유형, row[7]=오프셋, row[8]=연차, row[9]=야간수당, row[10]=최소근무
       if(row[0]==="STAFF") {
@@ -317,7 +332,7 @@ const Sheets = {
       }
       if(row[0]==="HOL") holidays[Number(row[1])]=row[2];
     });
-    return {staff:staff.length?staff:DEFAULT_STAFF, holidays, hourly, nightHrs, year, month};
+    return {staff:staff.length>=1?staff:[], holidays, hourly, nightHrs, year, month, rules};
   },
 
   // ── 설정 시트 쓰기
@@ -794,7 +809,7 @@ async function runPipeline(request, staff, y, m, holidays, requests, hourly, nig
       log("output","수당 계산 시트 저장 완료 ✓","success");
 
       log("output","📊 설정 시트 동기화 중...");
-      await Sheets.writeConfig(y, m, staff, holidays, hourly, nightHrs);
+      await Sheets.writeConfig(y, m, staff, holidays, hourly, nightHrs, rules);
       log("output","설정 시트 저장 완료 ✓","success");
 
       log("output","✅ Google Sheets 전체 동기화 완료","success");
@@ -1262,54 +1277,200 @@ function HolidayPanel({holidays,setHolidays,year,month}){
 
 // ── 요청 패널 ─────────────────────────────────────────────────
 function RequestPanel({staff,requests,setRequests,year,month}){
-  const [sel,setSel]=useState(staff[0]?.name||"");
-  const [day,setDay]=useState(""); const [type,setType]=useState("V");
-  const total=daysIn(year,month);
-  const add=()=>{const d=Number(day);if(!sel||d<1||d>total)return;
-    setRequests(p=>({...p,[sel]:{...(p[sel]||{}),[d]:type}}));setDay("");};
-  const allReqs=Object.entries(requests).flatMap(([n,days])=>
-    Object.entries(days).map(([d,t])=>({name:n,d:Number(d),type:t}))).sort((a,b)=>a.d-b.d);
+  const [selEmp, setSelEmp] = useState(staff[0]?.name||"");
+  const total = new Date(year,month,0).getDate();
+  const WD = ["일","월","화","수","목","금","토"];
+
+  // 날짜 클릭 시 주간→야간→비번→연차→삭제 순환
+  const TYPES = ["주","야","공","V"];
+  const TYPE_LABEL = {주:"주간",야:"야간",공:"비번",V:"연차"};
+  const TYPE_COLOR = {주:"#F4B942",야:"#5B5EA6",공:"#A9D18E",V:"#FFD966"};
+  const TYPE_FG    = {주:"#fff",야:"#fff",공:"#111",V:"#111"};
+
+  const toggle = (d) => {
+    setRequests(prev=>{
+      const empReq = {...(prev[selEmp]||{})};
+      const cur = empReq[d];
+      const idx = TYPES.indexOf(cur);
+      if(idx===-1) empReq[d]="주";           // 없으면 주간
+      else if(idx<TYPES.length-1) empReq[d]=TYPES[idx+1]; // 다음
+      else delete empReq[d];                  // 마지막이면 삭제
+      return {...prev, [selEmp]:empReq};
+    });
+  };
+
+  const clearEmp = () => setRequests(prev=>({...prev,[selEmp]:{}}));
+  const clearAll = () => { if(window.confirm("전체 요청을 초기화할까요?")) setRequests({}); };
+
+  const empReq = requests[selEmp]||{};
+  const summary = {주:0,야:0,공:0,V:0};
+  Object.values(empReq).forEach(v=>{ if(summary[v]!==undefined) summary[v]++; });
+
   return(
     <div style={{padding:16,overflowY:"auto",flex:1}}>
-      <div style={sectionTitle}>📝 연차·휴무 요청 입력</div>
-      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
-        <select value={sel} onChange={e=>setSel(e.target.value)} style={{...selectStyle,width:150}}>
-          {staff.map(s=><option key={s.name}>{s.name}</option>)}
-        </select>
-        <input type="number" min={1} max={total} value={day} onChange={e=>setDay(e.target.value)}
-          placeholder="날짜(일)" style={{...inputStyle,width:80}}/>
-        <select value={type} onChange={e=>setType(e.target.value)} style={selectStyle}>
-          {[["V","V — 연차"],["공","공 — 비번희망"],["휴","휴 — 대체휴무"]].map(([v,l])=>(
-            <option key={v} value={v}>{l}</option>))}
-        </select>
-        <button onClick={add} style={btnStyle()}>추가</button>
-        <button onClick={()=>setRequests({})} style={{...btnStyle("#5b1a1a")}}>전체 초기화</button>
+      <div style={{fontSize:26,fontWeight:700,color:C.teal,
+                   borderBottom:`1px solid ${C.border}`,paddingBottom:8,marginBottom:16}}>
+        📝 근무 요청 입력
+        <span style={{fontSize:18,color:C.gray,fontWeight:400,marginLeft:12}}>
+          {year}년 {month}월
+        </span>
       </div>
-      <div style={{fontSize:20,color:C.gray,marginBottom:8}}>
-        ※ 자연어 입력창에서도 추가 가능 — "요양보호사 01 14일 연차 써줘"
+
+      {/* 직원 선택 */}
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:18,color:C.gray,marginBottom:8}}>직원 선택</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+          {staff.map(s=>{
+            const cnt = Object.keys(requests[s.name]||{}).length;
+            const isSel = s.name===selEmp;
+            return(
+              <button key={s.name} onClick={()=>setSelEmp(s.name)}
+                style={{background:isSel?C.teal:"#1a2d4a",
+                         color:isSel?"#fff":C.gray,
+                         border:`1px solid ${isSel?C.teal:C.border}`,
+                         borderRadius:8,padding:"6px 14px",
+                         fontSize:18,cursor:"pointer",fontWeight:isSel?700:400,
+                         position:"relative"}}>
+                {s.name}
+                {cnt>0&&<span style={{
+                  position:"absolute",top:-6,right:-6,
+                  background:C.amber,color:"#111",
+                  borderRadius:"50%",width:20,height:20,
+                  fontSize:14,fontWeight:700,
+                  display:"flex",alignItems:"center",justifyContent:"center"
+                }}>{cnt}</span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      {allReqs.length===0?<div style={{color:C.gray,fontSize:24}}>등록된 요청 없음</div>:(
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:22}}>
-          <thead><tr>{["성명","날짜","요일","유형","삭제"].map(h=>(
-            <th key={h} style={{...th,background:C.steel,color:"#fff",padding:"6px 4px"}}>{h}</th>))}</tr></thead>
-          <tbody>{allReqs.map(({name,d,type:t},i)=>(
-            <tr key={i} style={{background:i%2===0?C.dark:"#0d1b2e"}}>
-              <td style={{...td,textAlign:"left",paddingLeft:8}}>{name}</td>
-              <td style={{...td,fontWeight:700}}>{d}일</td>
-              <td style={{...td,color:C.gray}}>{WD_KR[new Date(year,month-1,d).getDay()]}</td>
-              <td style={td}><span style={{background:shiftBg(t),color:shiftFg(t),borderRadius:4,
-                padding:"2px 8px",fontWeight:700}}>{t}</span></td>
-              <td style={td}><button onClick={()=>setRequests(p=>{const n={...p};
-                if(n[name]){const m={...n[name]};delete m[d];n[name]=m;}return n;})}
-                style={{...btnStyle("#5b1a1a"),padding:"2px 8px",fontSize:20}}>삭제</button></td>
-            </tr>))}</tbody>
-        </table>
+
+      {/* 선택 직원 달력 */}
+      {selEmp&&(
+        <div style={{background:C.dark,borderRadius:10,
+                     border:`1px solid ${C.border}`,padding:16,marginBottom:16}}>
+          {/* 직원 정보 + 요약 */}
+          <div style={{display:"flex",justifyContent:"space-between",
+                       alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+            <div>
+              <span style={{fontSize:22,fontWeight:700,color:C.white}}>{selEmp}</span>
+              <span style={{fontSize:16,color:C.gray,marginLeft:10}}>
+                {staff.find(s=>s.name===selEmp)?.role||""}
+              </span>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              {Object.entries(summary).filter(([,v])=>v>0).map(([k,v])=>(
+                <span key={k} style={{
+                  background:TYPE_COLOR[k],color:TYPE_FG[k],
+                  borderRadius:6,padding:"3px 10px",
+                  fontSize:16,fontWeight:700}}>
+                  {TYPE_LABEL[k]} {v}일
+                </span>
+              ))}
+              <button onClick={clearEmp}
+                style={{background:"#5b1a1a",color:"#fca5a5",border:"none",
+                         borderRadius:6,padding:"4px 12px",fontSize:16,cursor:"pointer"}}>
+                초기화
+              </button>
+            </div>
+          </div>
+
+          {/* 범례 */}
+          <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+            <span style={{fontSize:16,color:C.gray}}>클릭 순환:</span>
+            {TYPES.map(t=>(
+              <span key={t} style={{background:TYPE_COLOR[t],color:TYPE_FG[t],
+                                     borderRadius:5,padding:"2px 10px",
+                                     fontSize:16,fontWeight:700}}>
+                {TYPE_LABEL[t]}
+              </span>
+            ))}
+            <span style={{fontSize:16,color:C.gray}}>→ 한번 더 클릭시 삭제</span>
+          </div>
+
+          {/* 달력 그리드 */}
+          <div style={{display:"grid",
+                       gridTemplateColumns:"repeat(7,1fr)",
+                       gap:4}}>
+            {WD.map(w=>(
+              <div key={w} style={{
+                textAlign:"center",fontSize:16,fontWeight:700,
+                color:w==="일"?"#f87171":w==="토"?"#93c5fd":C.gray,
+                padding:"4px 0",borderBottom:`1px solid ${C.border}`
+              }}>{w}</div>
+            ))}
+            {/* 첫째 날 앞 빈칸 */}
+            {Array.from({length:new Date(year,month-1,1).getDay()},(_,i)=>(
+              <div key={`e${i}`}/>
+            ))}
+            {/* 날짜 */}
+            {Array.from({length:total},(_,i)=>{
+              const d=i+1;
+              const wd=new Date(year,month-1,d).getDay();
+              const req=empReq[d];
+              const isWd=wd===0||wd===6;
+              return(
+                <div key={d} onClick={()=>toggle(d)}
+                  style={{
+                    background:req?TYPE_COLOR[req]:"#1a2d4a",
+                    color:req?TYPE_FG[req]:isWd?"#94a3b8":C.white,
+                    borderRadius:8,padding:"8px 4px",
+                    textAlign:"center",cursor:"pointer",
+                    border:`1px solid ${req?TYPE_COLOR[req]:C.border}`,
+                    transition:"all 0.15s",
+                    userSelect:"none",
+                  }}>
+                  <div style={{fontSize:18,fontWeight:700}}>{d}</div>
+                  <div style={{fontSize:14,marginTop:2}}>
+                    {req?TYPE_LABEL[req]:WD[wd]}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
+
+      {/* 전체 요청 요약 */}
+      <div style={{background:"#0a1628",borderRadius:8,
+                   border:`1px solid ${C.border}`,padding:14}}>
+        <div style={{fontSize:18,fontWeight:700,color:C.teal,marginBottom:10}}>
+          📋 전체 요청 현황
+        </div>
+        {Object.entries(requests).filter(([,v])=>Object.keys(v).length>0).length===0
+          ? <div style={{fontSize:16,color:C.gray}}>등록된 요청 없음</div>
+          : Object.entries(requests)
+              .filter(([,v])=>Object.keys(v).length>0)
+              .map(([name,days])=>(
+                <div key={name} style={{display:"flex",gap:8,alignItems:"center",
+                                         marginBottom:6,flexWrap:"wrap"}}>
+                  <span style={{fontSize:16,fontWeight:700,color:C.white,
+                                 minWidth:130}}>{name}</span>
+                  {Object.entries(days).sort(([a],[b])=>Number(a)-Number(b))
+                    .map(([d,t])=>(
+                      <span key={d} style={{
+                        background:TYPE_COLOR[t],color:TYPE_FG[t],
+                        borderRadius:5,padding:"2px 8px",
+                        fontSize:14,fontWeight:700}}>
+                        {d}일({TYPE_LABEL[t]})
+                      </span>
+                    ))}
+                </div>
+              ))
+        }
+        <div style={{marginTop:12,borderTop:`1px solid ${C.border}`,paddingTop:10}}>
+          <button onClick={clearAll}
+            style={{background:"#5b1a1a",color:"#fca5a5",border:"none",
+                     borderRadius:6,padding:"6px 16px",fontSize:16,cursor:"pointer"}}>
+            🗑 전체 초기화
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── 수당 패널 ─────────────────────────────────────────────────
+
 function WagePanel({hourly,setHourly,nightHrs,setNightHrs,staff}){
   const nightOnly=staff.filter(s=>s.type==="야간전담"||s.type==="순환");
   return(
@@ -1709,6 +1870,7 @@ export default function App(){
       }
       setHolidays(cfg.holidays);
       setHourly(cfg.hourly); setNightHrs(cfg.nightHrs);
+      if(cfg.rules) setRules(cfg.rules);
       const req = await Sheets.readRequests();
       setRequests(req);
       if(!silent) alert("✅ Google Sheets에서 설정을 불러왔습니다.");
