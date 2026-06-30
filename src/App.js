@@ -10,8 +10,14 @@ const GAPI_CONFIG = {
   CLIENT_ID    : "575088677348-i8s653ni326sj9e7jpl6ikjrgbbrdfup.apps.googleusercontent.com",
   API_KEY      : "AIzaSyA17IdNlmepK2eK3riUzqH489BVJ-uGyww",
   SPREADSHEET_ID: "1xp3IJmB1jyrVY0DrDYdx2MXh4Xo68uRCTQkmh_xufhw",
-  SCOPES       : "https://www.googleapis.com/auth/spreadsheets",
+  SCOPES       : "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email",
 };
+
+// 관리자 이메일 허용 목록 (이 목록에 없으면 접속 차단)
+const ADMIN_EMAILS = [
+  "himem00@gmail.com",
+  "ahhayun@gmail.com",
+];
 
 // ── 색상 ──────────────────────────────────────────────────────
 const C = {
@@ -133,6 +139,19 @@ const Sheets = {
   _tokenClient: null,
   _token: null,
   _tokenExpiry: null,
+  _userEmail: null,
+
+  // 로그인한 사용자 이메일 확인
+  async _getUserEmail(){
+    try{
+      const r = await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{
+        headers:{Authorization:`Bearer ${Sheets._token}`}
+      });
+      const data = await r.json();
+      Sheets._userEmail = data.email;
+      return data.email;
+    }catch(e){ return null; }
+  },
 
   // GAPI + GIS 스크립트 로드 (최초 1회)
   async init() {
@@ -1829,6 +1848,12 @@ export default function App(){
       // sessionStorage에 유효한 토큰 있으면 복원 시도
       if(Sheets._loadToken()){
         window.gapi.client.setToken({access_token: Sheets._token});
+        const email = await Sheets._getUserEmail();
+        if(!ADMIN_EMAILS.includes(email)){
+          setSheetsStatus("idle");
+          try{ sessionStorage.removeItem("gapi_token"); }catch(e){}
+          return;
+        }
         // 실제 API 호출로 연결 검증
         await window.gapi.client.sheets.spreadsheets.values.get({
           spreadsheetId: GAPI_CONFIG.SPREADSHEET_ID,
@@ -1839,6 +1864,11 @@ export default function App(){
       }
       // 토큰 없으면 조용히 갱신 시도
       await Sheets._getToken(false);
+      const email2 = await Sheets._getUserEmail();
+      if(!ADMIN_EMAILS.includes(email2)){
+        setSheetsStatus("idle");
+        return;
+      }
       setSheetsStatus("connected");
     } catch(e){
       // 자동 연결 실패 → idle 상태로 수동 연결 유도
@@ -1851,6 +1881,14 @@ export default function App(){
     try {
       await Sheets.init();
       await Sheets.signIn(true);  // 강제 팝업으로 로그인
+      const email = await Sheets._getUserEmail();
+      if(!ADMIN_EMAILS.includes(email)){
+        alert(`⛔ 접근 권한이 없습니다.\n\n로그인 계정: ${email}\n이 앱은 관리자 전용입니다.`);
+        setSheetsStatus("idle");
+        Sheets._token = null;
+        try{ sessionStorage.removeItem("gapi_token"); }catch(e){}
+        return;
+      }
       setSheetsStatus("connected");
     } catch(e){
       console.error(e);
