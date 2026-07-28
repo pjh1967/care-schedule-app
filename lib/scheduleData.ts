@@ -34,14 +34,16 @@ export async function loadStaffConfigs(): Promise<StaffConfig[]> {
 export async function loadRules(): Promise<GlobalRules> {
   const [gh, minStaff, pairRows] = await Promise.all([
     readRange(`${RULES_SHEET}!G2:H2`),
-    readRange(`${RULES_SHEET}!N2:O2`),
+    readRange(`${RULES_SHEET}!N2:Q2`),
     readRange(`${RULES_SHEET}!J2:L30`),
   ]);
   return {
     maxConsec: gh?.[0]?.[0] ? Number(gh[0][0]) : 5,
     maxWorkDays: gh?.[0]?.[1] ? Number(gh[0][1]) : 26,
-    minDayStaff: minStaff?.[0]?.[0] ? Number(minStaff[0][0]) : 2,
-    minNightStaff: minStaff?.[0]?.[1] ? Number(minStaff[0][1]) : 2,
+    minDayStaffWeekday: minStaff?.[0]?.[0] ? Number(minStaff[0][0]) : 2,
+    minNightStaffWeekday: minStaff?.[0]?.[1] ? Number(minStaff[0][1]) : 2,
+    minDayStaffWeekend: minStaff?.[0]?.[2] ? Number(minStaff[0][2]) : 2,
+    minNightStaffWeekend: minStaff?.[0]?.[3] ? Number(minStaff[0][3]) : 2,
     pairs: pairRows.filter((r) => r[0] && r[1]).map((r) => ({ a: r[0], b: r[1], mode: (r[2] as GlobalRules["pairs"][number]["mode"]) || "같은조" })),
   };
 }

@@ -26,7 +26,15 @@ export default function AdminPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [staffConfigs, setStaffConfigs] = useState<StaffConfig[]>([]);
-  const [rules, setRules] = useState<GlobalRules>({ maxConsec: 5, maxWorkDays: 26, minDayStaff: 2, minNightStaff: 2, pairs: [] });
+  const [rules, setRules] = useState<GlobalRules>({
+    maxConsec: 5,
+    maxWorkDays: 26,
+    minDayStaffWeekday: 2,
+    minNightStaffWeekday: 2,
+    minDayStaffWeekend: 2,
+    minNightStaffWeekend: 2,
+    pairs: [],
+  });
   const [schedule, setSchedule] = useState<Record<string, Record<number, ShiftType>> | null>(null);
   const [violations, setViolations] = useState<string[]>([]);
   const [continuityNotes, setContinuityNotes] = useState<string[]>([]);
@@ -338,12 +346,20 @@ export default function AdminPage() {
         <div className="text-xs text-gray-500 mb-1.5 font-medium">법정 기준</div>
         <div className="flex gap-6 mb-5 flex-wrap items-end">
           <div>
-            <div className="text-xs text-gray-500 mb-1">주간 최소 인원</div>
-            <Input type="number" value={rules.minDayStaff} onChange={(e) => setRules({ ...rules, minDayStaff: Number(e.target.value) })} className="w-24" />
+            <div className="text-xs text-gray-500 mb-1">주중 주간 최소 인원</div>
+            <Input type="number" value={rules.minDayStaffWeekday} onChange={(e) => setRules({ ...rules, minDayStaffWeekday: Number(e.target.value) })} className="w-24" />
           </div>
           <div>
-            <div className="text-xs text-gray-500 mb-1">야간 최소 인원</div>
-            <Input type="number" value={rules.minNightStaff} onChange={(e) => setRules({ ...rules, minNightStaff: Number(e.target.value) })} className="w-24" />
+            <div className="text-xs text-gray-500 mb-1">주중 야간 최소 인원</div>
+            <Input type="number" value={rules.minNightStaffWeekday} onChange={(e) => setRules({ ...rules, minNightStaffWeekday: Number(e.target.value) })} className="w-24" />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">주말 주간 최소 인원</div>
+            <Input type="number" value={rules.minDayStaffWeekend} onChange={(e) => setRules({ ...rules, minDayStaffWeekend: Number(e.target.value) })} className="w-24" />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">주말 야간 최소 인원</div>
+            <Input type="number" value={rules.minNightStaffWeekend} onChange={(e) => setRules({ ...rules, minNightStaffWeekend: Number(e.target.value) })} className="w-24" />
           </div>
           <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
             <div className="text-xs text-gray-500">야간 후 최소 휴식</div>

@@ -17,8 +17,10 @@ export interface StaffConfig {
 export interface GlobalRules {
   maxConsec: number; // 최대 연속 근무일
   maxWorkDays: number; // 최대 근무일수
-  minDayStaff: number; // 주간 최소 인원 (법정 최소 기준, 편집 가능)
-  minNightStaff: number; // 야간 최소 인원 (법정 최소 기준, 편집 가능)
+  minDayStaffWeekday: number; // 주중(월~금) 주간 최소 인원
+  minNightStaffWeekday: number; // 주중(월~금) 야간 최소 인원
+  minDayStaffWeekend: number; // 주말(토·일) 주간 최소 인원
+  minNightStaffWeekend: number; // 주말(토·일) 야간 최소 인원
   pairs: { a: string; b: string; mode: "같은조" | "다른조" }[];
 }
 

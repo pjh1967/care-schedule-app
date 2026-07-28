@@ -22,9 +22,8 @@ function isCycleShift(s: ShiftType | undefined): s is CycleShift {
 
 /** 유형별로 고정된 주간 휴무 요일인지 (0=월 ~ 6=일, weekdayMonFirst 기준) */
 function isTypeFixedOffDay(type: StaffConfig["type"], wdMon: number): boolean {
-  if (type === "주간전담" || type === "야간전담") return wdMon === 6; // 일요일만 기본 휴무
   if (type === "주중근무") return wdMon === 5 || wdMon === 6; // 토·일 휴무 (월~금만 근무)
-  return false; // 순환형은 6일 주기 자체에서 휴무가 나옴
+  return false; // 주간전담/야간전담/순환은 자동 주말휴무 없음 — 제외요일로만 휴무 지정
 }
 
 /**
@@ -206,8 +205,13 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
       if (s === "D") dc++;
       if (s === "N") nc++;
     });
-    if (dc < rules.minDayStaff) violations.push(`${m}/${d} 주간 인원부족(${dc}명, 기준 ${rules.minDayStaff}명)`);
-    if (nc < rules.minNightStaff) violations.push(`${m}/${d} 야간 인원부족(${nc}명, 기준 ${rules.minNightStaff}명)`);
+    const wdMon = weekdayMonFirst(y, m, d);
+    const isWeekend = wdMon === 5 || wdMon === 6; // 토·일
+    const minDay = isWeekend ? rules.minDayStaffWeekend : rules.minDayStaffWeekday;
+    const minNight = isWeekend ? rules.minNightStaffWeekend : rules.minNightStaffWeekday;
+    const dayLabel = isWeekend ? "(주말)" : "(주중)";
+    if (dc < minDay) violations.push(`${m}/${d}${dayLabel} 주간 인원부족(${dc}명, 기준 ${minDay}명)`);
+    if (nc < minNight) violations.push(`${m}/${d}${dayLabel} 야간 인원부족(${nc}명, 기준 ${minNight}명)`);
   }
 
   return { schedule: sched, violations, continuityNotes };
