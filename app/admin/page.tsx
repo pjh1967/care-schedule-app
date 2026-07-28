@@ -196,8 +196,9 @@ export default function AdminPage() {
             <thead>
               <tr className="text-gray-500 text-xs">
                 <th className="text-left py-2 px-2 font-medium">이름</th>
+                <th className="py-2 px-2 font-medium">직위</th>
                 <th className="py-2 px-2 font-medium">유형</th>
-                <th className="py-2 px-2 font-medium">오프셋(0-5)</th>
+                <th className="py-2 px-2 font-medium">그룹설정(0-5)</th>
                 <th className="py-2 px-2 font-medium">최소근무일</th>
                 <th className="py-2 px-2 font-medium">제외요일</th>
               </tr>
@@ -206,6 +207,7 @@ export default function AdminPage() {
               {staffConfigs.map((s) => (
                 <tr key={s.name} className="border-t border-gray-100">
                   <td className="py-1.5 px-2 text-gray-800">{s.name}</td>
+                  <td className="py-1.5 px-2 text-gray-500">{s.role}</td>
                   <td className="py-1.5 px-2">
                     <Select value={s.type} onChange={(e) => updateConfig(s.name, { type: e.target.value as StaffConfig["type"] })}>
                       <option value="순환">순환</option>
