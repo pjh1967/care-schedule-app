@@ -200,8 +200,8 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
       if (s === "D") dc++;
       if (s === "N") nc++;
     });
-    if (dc < 2) violations.push(`${m}/${d} 주간 인원부족(${dc}명)`);
-    if (nc < 2) violations.push(`${m}/${d} 야간 인원부족(${nc}명)`);
+    if (dc < rules.minDayStaff) violations.push(`${m}/${d} 주간 인원부족(${dc}명, 기준 ${rules.minDayStaff}명)`);
+    if (nc < rules.minNightStaff) violations.push(`${m}/${d} 야간 인원부족(${nc}명, 기준 ${rules.minNightStaff}명)`);
   }
 
   return { schedule: sched, violations, continuityNotes };

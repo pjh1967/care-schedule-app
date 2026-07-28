@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readRange, writeRange, ensureSheetExists } from "@/lib/sheets";
 import { SCHEDULE_SHEET, REQUEST_SHEET, StaffConfig, MonthRequests, ShiftType } from "@/lib/types";
 import { generateSchedule, daysIn } from "@/lib/schedule";
-import { loadStaffConfigs, loadRules, loadMonthHistory } from "@/lib/scheduleData";
+import { loadStaffConfigs, loadRules, loadPrevMonthHistoryMerged } from "@/lib/scheduleData";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       loadStaffConfigs(),
       loadRules(),
       loadRequests(year, month),
-      loadMonthHistory(prevYear, prevMonth),
+      loadPrevMonthHistoryMerged(prevYear, prevMonth),
     ]);
 
     if (staffConfigs.length === 0) {

@@ -6,17 +6,21 @@ export const dynamic = "force-dynamic";
 
 // 배정기준_v2 시트 내 별도 영역
 //   G2 = 최대연속근무일수, H2 = 최대근무일수
+//   N2 = 주간 최소 인원, O2 = 야간 최소 인원
 //   J2:L30 = 페어링(직원A, 직원B, 모드)
 export async function GET() {
   try {
     await ensureSheetExists(RULES_SHEET);
-    const [gh, pairRows] = await Promise.all([
+    const [gh, minStaff, pairRows] = await Promise.all([
       readRange(`${RULES_SHEET}!G2:H2`),
+      readRange(`${RULES_SHEET}!N2:O2`),
       readRange(`${RULES_SHEET}!J2:L30`),
     ]);
     const rules: GlobalRules = {
       maxConsec: gh?.[0]?.[0] ? Number(gh[0][0]) : 5,
       maxWorkDays: gh?.[0]?.[1] ? Number(gh[0][1]) : 26,
+      minDayStaff: minStaff?.[0]?.[0] ? Number(minStaff[0][0]) : 2,
+      minNightStaff: minStaff?.[0]?.[1] ? Number(minStaff[0][1]) : 2,
       pairs: pairRows.filter((r) => r[0] && r[1]).map((r) => ({ a: r[0], b: r[1], mode: (r[2] as GlobalRules["pairs"][number]["mode"]) || "같은조" })),
     };
     return NextResponse.json({ rules });
@@ -31,6 +35,8 @@ export async function POST(req: NextRequest) {
     await ensureSheetExists(RULES_SHEET);
     await writeRange(`${RULES_SHEET}!G1:H1`, [["최대연속근무일", "최대근무일"]]);
     await writeRange(`${RULES_SHEET}!G2:H2`, [[rules.maxConsec, rules.maxWorkDays]]);
+    await writeRange(`${RULES_SHEET}!N1:O1`, [["주간최소인원", "야간최소인원"]]);
+    await writeRange(`${RULES_SHEET}!N2:O2`, [[rules.minDayStaff, rules.minNightStaff]]);
     await writeRange(`${RULES_SHEET}!J1:L1`, [["직원A", "직원B", "모드"]]);
     const pairRows = rules.pairs.map((p) => [p.a, p.b, p.mode]);
     await writeRange(`${RULES_SHEET}!J2:L30`, pairRows.length ? pairRows : [["", "", ""]]);

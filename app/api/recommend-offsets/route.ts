@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loadStaffConfigs, loadMonthHistory } from "@/lib/scheduleData";
+import { loadStaffConfigs, loadPrevMonthHistoryMerged } from "@/lib/scheduleData";
 import { continuedCycleIndexForDay1, daysIn } from "@/lib/schedule";
 import { CYCLE } from "@/lib/types";
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const prevYear = month === 1 ? year - 1 : year;
     const prevMonth = month === 1 ? 12 : month - 1;
 
-    const [staffConfigs, prevMonthHistory] = await Promise.all([loadStaffConfigs(), loadMonthHistory(prevYear, prevMonth)]);
+    const [staffConfigs, prevMonthHistory] = await Promise.all([loadStaffConfigs(), loadPrevMonthHistoryMerged(prevYear, prevMonth)]);
 
     // 다음달(생성 대상 월) 1일의 elapsed 기준을 맞추기 위해, 전달 이력에서 이어지는 순환 인덱스를
     // "이번 달 1일" 기준으로 계산한 뒤, 오프셋 값으로 역산한다.

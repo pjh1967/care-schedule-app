@@ -26,7 +26,7 @@ export default function AdminPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [staffConfigs, setStaffConfigs] = useState<StaffConfig[]>([]);
-  const [rules, setRules] = useState<GlobalRules>({ maxConsec: 5, maxWorkDays: 26, pairs: [] });
+  const [rules, setRules] = useState<GlobalRules>({ maxConsec: 5, maxWorkDays: 26, minDayStaff: 2, minNightStaff: 2, pairs: [] });
   const [schedule, setSchedule] = useState<Record<string, Record<number, ShiftType>> | null>(null);
   const [violations, setViolations] = useState<string[]>([]);
   const [continuityNotes, setContinuityNotes] = useState<string[]>([]);
@@ -325,7 +325,7 @@ export default function AdminPage() {
           </div>
         </div>
         {msg && <div className="text-sm text-amber-700 mb-3">{msg}</div>}
-        <div className="flex gap-6 mb-5 flex-wrap">
+        <div className="flex gap-6 mb-3 flex-wrap">
           <div>
             <div className="text-xs text-gray-500 mb-1">최대 연속 근무일</div>
             <Input type="number" value={rules.maxConsec} onChange={(e) => setRules({ ...rules, maxConsec: Number(e.target.value) })} className="w-24" />
@@ -333,6 +333,23 @@ export default function AdminPage() {
           <div>
             <div className="text-xs text-gray-500 mb-1">최대 근무일수</div>
             <Input type="number" value={rules.maxWorkDays} onChange={(e) => setRules({ ...rules, maxWorkDays: Number(e.target.value) })} className="w-24" />
+          </div>
+        </div>
+        <div className="text-xs text-gray-500 mb-1.5 font-medium">법정 기준</div>
+        <div className="flex gap-6 mb-5 flex-wrap items-end">
+          <div>
+            <div className="text-xs text-gray-500 mb-1">주간 최소 인원</div>
+            <Input type="number" value={rules.minDayStaff} onChange={(e) => setRules({ ...rules, minDayStaff: Number(e.target.value) })} className="w-24" />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">야간 최소 인원</div>
+            <Input type="number" value={rules.minNightStaff} onChange={(e) => setRules({ ...rules, minNightStaff: Number(e.target.value) })} className="w-24" />
+          </div>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            <div className="text-xs text-gray-500">야간 후 최소 휴식</div>
+            <div className="text-sm font-semibold text-gray-800">
+              11시간 <span className="text-xs font-normal text-gray-400">(근로기준법 권고 기준 · 순환 근무주기에 이미 반영되어 있어 별도 입력이 필요 없습니다)</span>
+            </div>
           </div>
         </div>
         <div className="flex gap-3 mb-3 text-xs text-gray-500 items-center">
