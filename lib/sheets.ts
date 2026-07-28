@@ -1,9 +1,10 @@
 // Google Sheets 서비스 계정 클라이언트
-// saesun-care-schedule과 동일한 스프레드시트를 서비스 계정으로 접근한다.
-// 필요한 환경변수 (Vercel Project Settings > Environment Variables):
+// saesun-care-schedule과 동일한 스프레드시트를, saesun과 "동일한 이름의" 환경변수로 접근한다.
+// (Vercel Project Settings > Environment Variables에서 saesun-care-schedule에 이미 등록된
+//  값을 그대로 복사해 넣으면 됩니다.)
 //   GOOGLE_SERVICE_ACCOUNT_EMAIL
-//   GOOGLE_PRIVATE_KEY          (개행은 \n 이스케이프로 저장, 아래에서 복원)
-//   SPREADSHEET_ID              (saesun-care-schedule과 동일한 시트 ID)
+//   GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY   (개행은 \n 이스케이프로 저장, 아래에서 복원)
+//   GOOGLE_SHEETS_SPREADSHEET_ID
 
 import { google } from "googleapis";
 
@@ -11,10 +12,10 @@ let cachedClient: ReturnType<typeof google.sheets> | null = null;
 
 function getAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const rawKey = process.env.GOOGLE_PRIVATE_KEY;
+  const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
   if (!email || !rawKey) {
     throw new Error(
-      "GOOGLE_SERVICE_ACCOUNT_EMAIL / GOOGLE_PRIVATE_KEY 환경변수가 설정되지 않았습니다."
+      "GOOGLE_SERVICE_ACCOUNT_EMAIL / GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY 환경변수가 설정되지 않았습니다."
     );
   }
   const privateKey = rawKey.replace(/\\n/g, "\n");
@@ -33,8 +34,8 @@ function getSheetsClient() {
 }
 
 function getSpreadsheetId() {
-  const id = process.env.SPREADSHEET_ID;
-  if (!id) throw new Error("SPREADSHEET_ID 환경변수가 설정되지 않았습니다.");
+  const id = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  if (!id) throw new Error("GOOGLE_SHEETS_SPREADSHEET_ID 환경변수가 설정되지 않았습니다.");
   return id;
 }
 

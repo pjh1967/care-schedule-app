@@ -30,14 +30,16 @@ saesun-care-schedule과 동일한 디자인 시스템(Tailwind CSS)을 적용했
 | `근무표_v2` | 생성 결과 |
 | `배정기준_v2` | 순환유형/오프셋/최소근무일/제외요일 + 전체규칙 + 페어링 |
 
-## 환경변수
+## 환경변수 (saesun-care-schedule과 동일한 이름 사용)
 ```
 GOOGLE_SERVICE_ACCOUNT_EMAIL=...
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-SPREADSHEET_ID=...
-ADMIN_PASSWORD=관리자_비밀번호
-SESSION_SECRET=임의의_긴_랜덤_문자열
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GOOGLE_SHEETS_SPREADSHEET_ID=...
+ADMIN_PASSWORD=관리자_비밀번호   # saesun과 같은 값 재사용 가능
+SESSION_SECRET=임의의_긴_랜덤_문자열   # 이 앱에만 필요한 새 값
 ```
+saesun-care-schedule Vercel 프로젝트의 Environment Variables에서 위 이름들을 찾아 값을 그대로
+복사해 이 프로젝트에 붙여넣으면 됩니다 (변수 이름이 saesun과 완전히 동일하도록 맞췄습니다).
 
 ## 배포 (기존 care-schedule-app 저장소 재사용)
 1. 로컬 `care-schedule-app` 폴더에서 `.git`만 남기고 기존 파일 삭제
