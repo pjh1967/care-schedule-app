@@ -17,6 +17,10 @@ function groupedStaff<T extends { role: string }>(list: T[]): T[] {
   return [...list].sort((a, b) => roleGroupIndex(a.role) - roleGroupIndex(b.role));
 }
 
+function roleAbbrev(role: string): string {
+  return role ? `${role[0]})` : "";
+}
+
 export default function AdminPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -200,37 +204,23 @@ export default function AdminPage() {
               <tr className="bg-gray-50 text-gray-500">
                 <th className="sticky left-0 bg-gray-50 px-3 py-2 text-left font-medium border-b border-gray-200 z-10">이름</th>
                 <th className="sticky left-[72px] bg-gray-50 px-2 py-2 text-left font-medium border-b border-gray-200 z-10">직위</th>
-                {Array.from({ length: total }, (_, i) => (
-                  <th key={i} className="px-1 py-2 font-medium border-b border-gray-200">
-                    {i + 1}
-                  </th>
-                ))}
-                <th className="px-1.5 py-2 font-medium border-b border-l border-gray-200 bg-amber-50 text-amber-700">D합계</th>
-                <th className="px-1.5 py-2 font-medium border-b border-gray-200 bg-indigo-50 text-indigo-700">N합계</th>
-                <th className="px-1.5 py-2 font-medium border-b border-gray-200 bg-purple-50 text-purple-700">연차</th>
-                <th className="px-1.5 py-2 font-medium border-b border-gray-200 bg-gray-100 text-gray-600">공가합계</th>
-              </tr>
-              {/* 일별 요약 행 4개 (직원명단 아래줄) */}
-              {[
-                { label: "요)주간", tone: "text-amber-700 bg-amber-50", calc: dayCareCount },
-                { label: "요)야간", tone: "text-indigo-700 bg-indigo-50", calc: nightCareCount },
-                { label: "보호사", tone: "text-gray-700 bg-gray-100", calc: careTotalCount },
-                { label: "요+조)합계", tone: "text-emerald-700 bg-emerald-50", calc: allTotalCount },
-              ].map((row) => (
-                <tr key={row.label} className={row.tone}>
-                  <th className={`sticky left-0 px-3 py-1 text-left font-semibold border-b border-gray-200 z-10 ${row.tone}`}>{row.label}</th>
-                  <th className={`sticky left-[72px] px-2 py-1 border-b border-gray-200 z-10 ${row.tone}`}></th>
-                  {Array.from({ length: total }, (_, i) => (
-                    <th key={i} className="px-1 py-1 font-semibold border-b border-gray-200">
-                      {row.calc(i + 1)}
+                {Array.from({ length: total }, (_, i) => {
+                  const d = i + 1;
+                  const wd = new Date(year, month - 1, d).getDay();
+                  const wdLabel = ["일", "월", "화", "수", "목", "금", "토"][wd];
+                  const wdColor = wd === 0 ? "text-red-500" : wd === 6 ? "text-blue-600" : "text-gray-400";
+                  return (
+                    <th key={i} className="px-1 py-2 font-medium border-b border-gray-200 leading-tight">
+                      <div>{d}</div>
+                      <div className={`text-[10px] font-normal ${wdColor}`}>({wdLabel})</div>
                     </th>
-                  ))}
-                  <th className="border-b border-l border-gray-200"></th>
-                  <th className="border-b border-gray-200"></th>
-                  <th className="border-b border-gray-200"></th>
-                  <th className="border-b border-gray-200"></th>
-                </tr>
-              ))}
+                  );
+                })}
+                <th className="px-1.5 py-2 font-medium border-b border-l border-gray-200 bg-amber-50 text-amber-700">주간</th>
+                <th className="px-1.5 py-2 font-medium border-b border-gray-200 bg-indigo-50 text-indigo-700">야간</th>
+                <th className="px-1.5 py-2 font-medium border-b border-gray-200 bg-purple-50 text-purple-700">연차</th>
+                <th className="px-1.5 py-2 font-medium border-b border-gray-200 bg-gray-100 text-gray-600">합계</th>
+              </tr>
             </thead>
             <tbody>
               {sortedScheduleNames.map((name, idx) => {
@@ -251,7 +241,7 @@ export default function AdminPage() {
                     )}
                     <tr key={name} className="border-b border-gray-100 last:border-0">
                       <td className="sticky left-0 bg-white px-3 py-1.5 font-medium text-gray-800 z-10">{name}</td>
-                      <td className="sticky left-[72px] bg-white px-2 py-1.5 text-gray-500 z-10">{role}</td>
+                      <td className="sticky left-[72px] bg-white px-2 py-1.5 text-gray-500 z-10">{roleAbbrev(role)}</td>
                       {Array.from({ length: total }, (_, i) => {
                         const d = i + 1;
                         const s = days[d] || "";
@@ -264,12 +254,34 @@ export default function AdminPage() {
                       <td className="text-center px-1.5 py-1.5 border-l border-gray-100 font-semibold text-amber-700">{t.D}</td>
                       <td className="text-center px-1.5 py-1.5 font-semibold text-indigo-700">{t.N}</td>
                       <td className="text-center px-1.5 py-1.5 font-semibold text-purple-700">{t.연차}</td>
-                      <td className="text-center px-1.5 py-1.5 font-semibold text-gray-600">{t.공가}</td>
+                      <td className="text-center px-1.5 py-1.5 font-semibold text-gray-600">{t.D + t.N + t.연차}</td>
                     </tr>
                   </Fragment>
                 );
               })}
             </tbody>
+            <tfoot>
+              {[
+                { label: "요)주간", tone: "text-amber-700 bg-amber-50", calc: dayCareCount },
+                { label: "요)야간", tone: "text-indigo-700 bg-indigo-50", calc: nightCareCount },
+                { label: "요)주야", tone: "text-gray-700 bg-gray-100", calc: careTotalCount },
+                { label: "요+조)", tone: "text-emerald-700 bg-emerald-50", calc: allTotalCount },
+              ].map((row) => (
+                <tr key={row.label} className={row.tone}>
+                  <th className={`sticky left-0 px-3 py-1 text-left font-semibold border-t border-gray-200 z-10 ${row.tone}`}>{row.label}</th>
+                  <th className={`sticky left-[72px] px-2 py-1 border-t border-gray-200 z-10 ${row.tone}`}></th>
+                  {Array.from({ length: total }, (_, i) => (
+                    <th key={i} className="px-1 py-1 font-semibold border-t border-gray-200">
+                      {row.calc(i + 1)}
+                    </th>
+                  ))}
+                  <th className="border-t border-l border-gray-200"></th>
+                  <th className="border-t border-gray-200"></th>
+                  <th className="border-t border-gray-200"></th>
+                  <th className="border-t border-gray-200"></th>
+                </tr>
+              ))}
+            </tfoot>
           </table>
         </Card>
       )}
