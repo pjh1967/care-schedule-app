@@ -42,6 +42,7 @@ export default function AdminPage() {
   const [continuityDetails, setContinuityDetails] = useState<ContinuityDetail[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+  const [staffLoaded, setStaffLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -50,8 +51,16 @@ export default function AdminPage() {
       const r = await rRes.json();
       if (sc.staffConfigs) setStaffConfigs(sc.staffConfigs);
       if (r.rules) setRules(r.rules);
+      setStaffLoaded(true);
     })();
   }, []);
+
+  // 년/월을 고를 때마다(직원 목록이 준비된 뒤) 자동으로 전달 실이력 기반 추천을 계산한다.
+  useEffect(() => {
+    if (!staffLoaded) return;
+    recommendOffsets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, month, staffLoaded]);
 
   const saveConfig = async () => {
     setLoading(true);
@@ -411,16 +420,17 @@ export default function AdminPage() {
       )}
 
       <Card id="rules">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-1">
           <div className="text-base font-semibold text-gray-900">배정 기준</div>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={recommendOffsets} disabled={loading}>
-              {year}년 {month}월 기준 · 전달 실이력으로 그룹설정 추천받기
-            </Button>
-            <Button variant="outline" onClick={saveConfig} disabled={loading}>
-              설정 저장
-            </Button>
-          </div>
+          <Button variant="outline" onClick={saveConfig} disabled={loading}>
+            설정 저장
+          </Button>
+        </div>
+        <div className="text-xs text-gray-400 mb-4">
+          {year}년 {month}월 기준 · 전달 실이력으로 그룹설정을 자동 추천했습니다.{" "}
+          <button onClick={recommendOffsets} disabled={loading} className="text-emerald-700 hover:underline disabled:opacity-50">
+            다시 계산
+          </button>
         </div>
         {msg && <div className="text-sm text-amber-700 mb-3">{msg}</div>}
         <div className="flex gap-6 mb-3 flex-wrap">

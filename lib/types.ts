@@ -8,6 +8,8 @@ export const REST_LIKE = new Set<ShiftType>(["/", "연차", "교육"]);
 export interface StaffConfig {
   name: string;
   role: string;
+  gender?: string; // 직원마스터 C열 (근무표_v2 저장 형식 재현용)
+  rank?: string; // 직원마스터 D열(업무순위) (근무표_v2 저장 형식 재현용)
   type: "순환" | "주간전담" | "야간전담" | "주중근무";
   offset: number; // 0~5, 순환형만 사용 (설정된 기준값. 실제 생성 시 전달 이력이 있으면 이 값 대신 이력 기반 값을 우선 사용)
   minWorkDays: number;
