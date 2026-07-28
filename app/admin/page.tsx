@@ -222,9 +222,16 @@ export default function AdminPage() {
               <tr className="bg-gray-50 text-gray-500 text-xs">
                 <th className="text-left px-3 py-2 font-medium border-b border-gray-200">이름</th>
                 <th className="px-2 py-2 font-medium border-b border-gray-200">직위</th>
-                <th className="px-2 py-2 font-medium border-b border-gray-200" colSpan={5}>
-                  전달 마지막 5일
-                </th>
+                {Array.from({ length: 5 }, (_, i) => {
+                  const entry = continuityDetails[0]?.last5[i];
+                  const monthLabel = continuityDetails[0]?.prevMonthLabel?.split(" ")[1] || "";
+                  return (
+                    <th key={i} className="px-1 py-2 font-medium border-b border-gray-200 leading-tight">
+                      <div className="text-[10px] text-gray-400">{monthLabel}</div>
+                      <div>{entry ? `${entry.day}일` : "-"}</div>
+                    </th>
+                  );
+                })}
                 <th className="px-2 py-2 font-medium border-b border-l border-gray-200">{month}월 1일</th>
                 <th className="px-2 py-2 font-medium border-b border-gray-200">그룹설정</th>
                 <th className="px-2 py-2 font-medium border-b border-gray-200">근거</th>
@@ -239,15 +246,8 @@ export default function AdminPage() {
                     const entry = cd.last5[i];
                     return (
                       <td key={i} className="text-center px-1 py-1.5">
-                        {entry ? (
-                          <div>
-                            <div className="text-[10px] text-gray-400">{entry.day}일</div>
-                            {entry.shift ? (
-                              <span className={`inline-flex w-6 h-6 items-center justify-center rounded border text-xs font-medium ${SHIFT_BADGE_CLASS[entry.shift]}`}>{entry.shift}</span>
-                            ) : (
-                              <span className="text-gray-300">-</span>
-                            )}
-                          </div>
+                        {entry?.shift ? (
+                          <span className={`inline-flex w-6 h-6 items-center justify-center rounded border text-xs font-medium ${SHIFT_BADGE_CLASS[entry.shift]}`}>{entry.shift}</span>
                         ) : (
                           <span className="text-gray-300">-</span>
                         )}
