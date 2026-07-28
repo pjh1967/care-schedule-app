@@ -54,3 +54,26 @@ export interface StaffMember {
 
 export type DayRequests = Record<number, ShiftType>; // { 일: 근무유형 }
 
+// ── 직위 구분선/정렬용 그룹 (관리자 화면에서 공용으로 사용) ─────────
+export const ROLE_GROUP_LABELS = ["시설장", "부원장", "사회복지사", "간호조무사", "팀장 및 요양보호사", "조리원", "기타"];
+
+export function roleGroupIndex(role: string): number {
+  switch (role) {
+    case "시설장":
+      return 0;
+    case "부원장":
+      return 1;
+    case "사회복지사":
+      return 2;
+    case "간호조무사":
+      return 3;
+    case "팀장":
+    case "요양보호사":
+      return 4;
+    case "조리원":
+      return 5;
+    default:
+      return 6;
+  }
+}
+

@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { StaffConfig, GlobalRules, ShiftType, SHIFT_BADGE_CLASS } from "@/lib/types";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { StaffConfig, GlobalRules, ShiftType, SHIFT_BADGE_CLASS, roleGroupIndex, ROLE_GROUP_LABELS } from "@/lib/types";
 import { Button, Card, Select, Input } from "@/components/ui";
 
 const WD_MON_FIRST = ["월", "화", "수", "목", "금", "토", "일"]; // 0=월 ~ 6=일 (lib/schedule.ts weekdayMonFirst와 동일 순서)
+
+// 유형별 배정기준 행 배경색 (주간전담/야간전담 시각 구분)
+const TYPE_ROW_CLASS: Record<StaffConfig["type"], string> = {
+  순환: "",
+  주간전담: "bg-amber-50",
+  야간전담: "bg-indigo-50",
+};
+
+function groupedStaff<T extends { role: string }>(list: T[]): T[] {
+  return [...list].sort((a, b) => roleGroupIndex(a.role) - roleGroupIndex(b.role));
+}
 
 export default function AdminPage() {
   const [year, setYear] = useState(new Date().getFullYear());
@@ -85,8 +96,49 @@ export default function AdminPage() {
 
   const total = new Date(year, month, 0).getDate();
 
+  // 배정기준 표: 직위 그룹 순서로 정렬
+  const sortedConfigs = useMemo(() => groupedStaff(staffConfigs), [staffConfigs]);
+
+  // 근무표 표: staffConfigs의 role 정보를 이름으로 매핑해 사용
+  const roleByName = useMemo(() => {
+    const m: Record<string, string> = {};
+    staffConfigs.forEach((s) => (m[s.name] = s.role));
+    return m;
+  }, [staffConfigs]);
+
+  const sortedScheduleNames = useMemo(() => {
+    if (!schedule) return [];
+    return groupedStaff(Object.keys(schedule).map((name) => ({ name, role: roleByName[name] || "" }))).map((s) => s.name);
+  }, [schedule, roleByName]);
+
+  // 팀장/요양보호사, 조리원 이름 목록 (일별 합계 계산용)
+  const caregiverNames = useMemo(() => staffConfigs.filter((s) => s.role === "팀장" || s.role === "요양보호사").map((s) => s.name), [staffConfigs]);
+  const cookNames = useMemo(() => staffConfigs.filter((s) => s.role === "조리원").map((s) => s.name), [staffConfigs]);
+
+  const dayCareCount = (d: number) => (schedule ? caregiverNames.filter((n) => schedule[n]?.[d] === "D").length : 0);
+  const nightCareCount = (d: number) => (schedule ? caregiverNames.filter((n) => schedule[n]?.[d] === "N").length : 0);
+  const careTotalCount = (d: number) => dayCareCount(d) + nightCareCount(d);
+  const cookWorkCount = (d: number) => (schedule ? cookNames.filter((n) => schedule[n]?.[d] === "D" || schedule[n]?.[d] === "N").length : 0);
+  const allTotalCount = (d: number) => careTotalCount(d) + cookWorkCount(d);
+
+  const personalTotals = (name: string) => {
+    if (!schedule) return { D: 0, N: 0, 연차: 0, 공가: 0 };
+    const days = schedule[name] || {};
+    let D = 0,
+      N = 0,
+      leave = 0,
+      off = 0;
+    Object.values(days).forEach((s) => {
+      if (s === "D") D++;
+      else if (s === "N") N++;
+      else if (s === "연차") leave++;
+      else if (s === "/") off++;
+    });
+    return { D, N, 연차: leave, 공가: off };
+  };
+
   return (
-    <div className="max-w-5xl mx-auto flex flex-col gap-6">
+    <div className="max-w-6xl mx-auto flex flex-col gap-6">
       <h1 className="text-xl font-bold text-gray-900">근무표 편성</h1>
 
       <Card id="generate">
@@ -143,32 +195,80 @@ export default function AdminPage() {
 
       {schedule && (
         <Card noPadding className="overflow-x-auto">
-          <table className="min-w-[900px] text-sm">
+          <table className="min-w-[1100px] text-sm">
             <thead>
               <tr className="bg-gray-50 text-gray-500">
-                <th className="sticky left-0 bg-gray-50 px-3 py-2 text-left font-medium border-b border-gray-200">이름</th>
+                <th className="sticky left-0 bg-gray-50 px-3 py-2 text-left font-medium border-b border-gray-200 z-10">이름</th>
+                <th className="sticky left-[72px] bg-gray-50 px-2 py-2 text-left font-medium border-b border-gray-200 z-10">직위</th>
                 {Array.from({ length: total }, (_, i) => (
                   <th key={i} className="px-1 py-2 font-medium border-b border-gray-200">
                     {i + 1}
                   </th>
                 ))}
+                <th className="px-1.5 py-2 font-medium border-b border-l border-gray-200 bg-amber-50 text-amber-700">D합계</th>
+                <th className="px-1.5 py-2 font-medium border-b border-gray-200 bg-indigo-50 text-indigo-700">N합계</th>
+                <th className="px-1.5 py-2 font-medium border-b border-gray-200 bg-purple-50 text-purple-700">연차</th>
+                <th className="px-1.5 py-2 font-medium border-b border-gray-200 bg-gray-100 text-gray-600">공가합계</th>
               </tr>
-            </thead>
-            <tbody>
-              {Object.entries(schedule).map(([name, days]) => (
-                <tr key={name} className="border-b border-gray-100 last:border-0">
-                  <td className="sticky left-0 bg-white px-3 py-1.5 font-medium text-gray-800">{name}</td>
-                  {Array.from({ length: total }, (_, i) => {
-                    const d = i + 1;
-                    const s = days[d] || "";
-                    return (
-                      <td key={d} className="text-center px-0.5 py-1.5">
-                        {s && <span className={`inline-flex w-6 h-6 items-center justify-center rounded border text-xs font-medium ${SHIFT_BADGE_CLASS[s]}`}>{s}</span>}
-                      </td>
-                    );
-                  })}
+              {/* 일별 요약 행 4개 (직원명단 아래줄) */}
+              {[
+                { label: "요)주간", tone: "text-amber-700 bg-amber-50", calc: dayCareCount },
+                { label: "요)야간", tone: "text-indigo-700 bg-indigo-50", calc: nightCareCount },
+                { label: "보호사", tone: "text-gray-700 bg-gray-100", calc: careTotalCount },
+                { label: "요+조)합계", tone: "text-emerald-700 bg-emerald-50", calc: allTotalCount },
+              ].map((row) => (
+                <tr key={row.label} className={row.tone}>
+                  <th className={`sticky left-0 px-3 py-1 text-left font-semibold border-b border-gray-200 z-10 ${row.tone}`}>{row.label}</th>
+                  <th className={`sticky left-[72px] px-2 py-1 border-b border-gray-200 z-10 ${row.tone}`}></th>
+                  {Array.from({ length: total }, (_, i) => (
+                    <th key={i} className="px-1 py-1 font-semibold border-b border-gray-200">
+                      {row.calc(i + 1)}
+                    </th>
+                  ))}
+                  <th className="border-b border-l border-gray-200"></th>
+                  <th className="border-b border-gray-200"></th>
+                  <th className="border-b border-gray-200"></th>
+                  <th className="border-b border-gray-200"></th>
                 </tr>
               ))}
+            </thead>
+            <tbody>
+              {sortedScheduleNames.map((name, idx) => {
+                const role = roleByName[name] || "";
+                const prevRole = idx > 0 ? roleByName[sortedScheduleNames[idx - 1]] || "" : null;
+                const showDivider = idx > 0 && roleGroupIndex(role) !== roleGroupIndex(prevRole || "");
+                const days = schedule[name];
+                const t = personalTotals(name);
+                return (
+                  <Fragment key={name}>
+                    {showDivider && (
+                      <tr key={`div-${name}`}>
+                        <td colSpan={2 + total} className="sticky left-0 bg-gray-100 border-y border-gray-200 px-3 py-1 text-xs font-semibold text-gray-500">
+                          {ROLE_GROUP_LABELS[roleGroupIndex(role)]}
+                        </td>
+                        <td colSpan={4} className="bg-gray-100 border-y border-gray-200"></td>
+                      </tr>
+                    )}
+                    <tr key={name} className="border-b border-gray-100 last:border-0">
+                      <td className="sticky left-0 bg-white px-3 py-1.5 font-medium text-gray-800 z-10">{name}</td>
+                      <td className="sticky left-[72px] bg-white px-2 py-1.5 text-gray-500 z-10">{role}</td>
+                      {Array.from({ length: total }, (_, i) => {
+                        const d = i + 1;
+                        const s = days[d] || "";
+                        return (
+                          <td key={d} className="text-center px-0.5 py-1.5">
+                            {s && <span className={`inline-flex w-6 h-6 items-center justify-center rounded border text-xs font-medium ${SHIFT_BADGE_CLASS[s]}`}>{s}</span>}
+                          </td>
+                        );
+                      })}
+                      <td className="text-center px-1.5 py-1.5 border-l border-gray-100 font-semibold text-amber-700">{t.D}</td>
+                      <td className="text-center px-1.5 py-1.5 font-semibold text-indigo-700">{t.N}</td>
+                      <td className="text-center px-1.5 py-1.5 font-semibold text-purple-700">{t.연차}</td>
+                      <td className="text-center px-1.5 py-1.5 font-semibold text-gray-600">{t.공가}</td>
+                    </tr>
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </Card>
@@ -191,6 +291,14 @@ export default function AdminPage() {
             <Input type="number" value={rules.maxWorkDays} onChange={(e) => setRules({ ...rules, maxWorkDays: Number(e.target.value) })} className="w-24" />
           </div>
         </div>
+        <div className="flex gap-3 mb-3 text-xs text-gray-500 items-center">
+          <span className="inline-flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded bg-amber-50 border border-amber-200" /> 주간전담
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded bg-indigo-50 border border-indigo-200" /> 야간전담
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -204,45 +312,59 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {staffConfigs.map((s) => (
-                <tr key={s.name} className="border-t border-gray-100">
-                  <td className="py-1.5 px-2 text-gray-800">{s.name}</td>
-                  <td className="py-1.5 px-2 text-gray-500">{s.role}</td>
-                  <td className="py-1.5 px-2">
-                    <Select value={s.type} onChange={(e) => updateConfig(s.name, { type: e.target.value as StaffConfig["type"] })}>
-                      <option value="순환">순환</option>
-                      <option value="주간전담">주간전담</option>
-                      <option value="야간전담">야간전담</option>
-                    </Select>
-                  </td>
-                  <td className="py-1.5 px-2">
-                    <Input type="number" min={0} max={5} value={s.offset} onChange={(e) => updateConfig(s.name, { offset: Number(e.target.value) })} className="w-16" />
-                  </td>
-                  <td className="py-1.5 px-2">
-                    <Input type="number" value={s.minWorkDays} onChange={(e) => updateConfig(s.name, { minWorkDays: Number(e.target.value) })} className="w-16" />
-                  </td>
-                  <td className="py-1.5 px-2">
-                    <div className="flex gap-0.5">
-                      {WD_MON_FIRST.map((w, idx) => {
-                        const active = (s.excludeWeekdays || []).includes(idx);
-                        return (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => toggleExcludeWeekday(s.name, idx)}
-                            className={`w-6 h-6 text-[11px] rounded ${
-                              active ? "bg-emerald-700 text-white" : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
-                            }`}
-                            title={active ? `${w}요일 근무 제외됨 (클릭 시 해제)` : `${w}요일 근무 제외하려면 클릭`}
-                          >
-                            {w}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {sortedConfigs.map((s, idx) => {
+                const prevRole = idx > 0 ? sortedConfigs[idx - 1].role : null;
+                const showDivider = idx > 0 && roleGroupIndex(s.role) !== roleGroupIndex(prevRole || "");
+                const rowClass = TYPE_ROW_CLASS[s.type] || "";
+                return (
+                  <Fragment key={s.name}>
+                    {showDivider && (
+                      <tr key={`div-${s.name}`}>
+                        <td colSpan={6} className="bg-gray-100 border-y border-gray-200 px-2 py-1 text-xs font-semibold text-gray-500">
+                          {ROLE_GROUP_LABELS[roleGroupIndex(s.role)]}
+                        </td>
+                      </tr>
+                    )}
+                    <tr key={s.name} className={`border-t border-gray-100 ${rowClass}`}>
+                      <td className="py-1.5 px-2 text-gray-800">{s.name}</td>
+                      <td className="py-1.5 px-2 text-gray-500">{s.role}</td>
+                      <td className="py-1.5 px-2">
+                        <Select value={s.type} onChange={(e) => updateConfig(s.name, { type: e.target.value as StaffConfig["type"] })}>
+                          <option value="순환">순환</option>
+                          <option value="주간전담">주간전담</option>
+                          <option value="야간전담">야간전담</option>
+                        </Select>
+                      </td>
+                      <td className="py-1.5 px-2">
+                        <Input type="number" min={0} max={5} value={s.offset} onChange={(e) => updateConfig(s.name, { offset: Number(e.target.value) })} className="w-16" />
+                      </td>
+                      <td className="py-1.5 px-2">
+                        <Input type="number" value={s.minWorkDays} onChange={(e) => updateConfig(s.name, { minWorkDays: Number(e.target.value) })} className="w-16" />
+                      </td>
+                      <td className="py-1.5 px-2">
+                        <div className="flex gap-0.5">
+                          {WD_MON_FIRST.map((w, wIdx) => {
+                            const active = (s.excludeWeekdays || []).includes(wIdx);
+                            return (
+                              <button
+                                key={wIdx}
+                                type="button"
+                                onClick={() => toggleExcludeWeekday(s.name, wIdx)}
+                                className={`w-6 h-6 text-[11px] rounded ${
+                                  active ? "bg-emerald-700 text-white" : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
+                                }`}
+                                title={active ? `${w}요일 근무 제외됨 (클릭 시 해제)` : `${w}요일 근무 제외하려면 클릭`}
+                              >
+                                {w}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </td>
+                    </tr>
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
