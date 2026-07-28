@@ -158,6 +158,31 @@ export default function AdminPage() {
   const caregiverNames = useMemo(() => staffConfigs.filter((s) => s.role === "팀장" || s.role === "요양보호사").map((s) => s.name), [staffConfigs]);
   const cookNames = useMemo(() => staffConfigs.filter((s) => s.role === "조리원").map((s) => s.name), [staffConfigs]);
 
+  // "확인 필요" 목록을 직원별/날짜별로 파싱해서 근무표 위에 직접 표시하기 위한 맵
+  const { violatedNameMap, violatedDayMap } = useMemo(() => {
+    const nameMap = new Map<string, string[]>();
+    const dayMap = new Map<number, string[]>();
+    const addName = (name: string, msg: string) => nameMap.set(name, [...(nameMap.get(name) || []), msg]);
+    const addDay = (day: number, msg: string) => dayMap.set(day, [...(dayMap.get(day) || []), msg]);
+
+    violations.forEach((v) => {
+      const minWorkMatch = v.match(/^(\S+) 최소근무 미충족/);
+      if (minWorkMatch) addName(minWorkMatch[1], v);
+
+      const restConflictMatch = v.match(/^(\S+): \d+\/(\d+)\(야간\)→\d+\/(\d+)\(주간\)/);
+      if (restConflictMatch) {
+        addName(restConflictMatch[1], v);
+        addDay(Number(restConflictMatch[2]), v);
+        addDay(Number(restConflictMatch[3]), v);
+      }
+
+      const dayLevelMatch = v.match(/^\d+\/(\d+)\(/);
+      if (dayLevelMatch) addDay(Number(dayLevelMatch[1]), v);
+    });
+
+    return { violatedNameMap: nameMap, violatedDayMap: dayMap };
+  }, [violations]);
+
   const dayCareCount = (d: number) => (schedule ? caregiverNames.filter((n) => schedule[n]?.[d] === "D").length : 0);
   const nightCareCount = (d: number) => (schedule ? caregiverNames.filter((n) => schedule[n]?.[d] === "N").length : 0);
   const careTotalCount = (d: number) => dayCareCount(d) + nightCareCount(d);
@@ -274,33 +299,24 @@ export default function AdminPage() {
         </Card>
       )}
 
-      {(violations.length > 0 || (continuityNotes.length > 0 && continuityDetails.length === 0)) && (
+      {continuityNotes.length > 0 && continuityDetails.length === 0 && (
         <Card>
-          {continuityNotes.length > 0 && continuityDetails.length === 0 && (
-            <div className="mb-3">
-              <div className="text-sm font-semibold text-emerald-700 mb-1.5">연속성 반영 내역</div>
-              {continuityNotes.map((n, i) => (
-                <div key={i} className="text-sm text-gray-600">
-                  {n}
-                </div>
-              ))}
+          <div className="text-sm font-semibold text-emerald-700 mb-1.5">연속성 반영 내역</div>
+          {continuityNotes.map((n, i) => (
+            <div key={i} className="text-sm text-gray-600">
+              {n}
             </div>
-          )}
-          {violations.length > 0 && (
-            <div>
-              <div className="text-sm font-semibold text-amber-700 mb-1.5">확인 필요</div>
-              {violations.map((v, i) => (
-                <div key={i} className="text-sm text-amber-700">
-                  {v}
-                </div>
-              ))}
-            </div>
-          )}
+          ))}
         </Card>
       )}
 
       {schedule && (
         <Card noPadding className="overflow-x-auto">
+          {(violatedNameMap.size > 0 || violatedDayMap.size > 0) && (
+            <div className="px-4 pt-3 pb-1 flex items-center gap-2 text-xs text-gray-500">
+              <span className="inline-block w-3 h-3 rounded bg-red-100/70 border border-red-200" /> 확인 필요 — 위에 마우스를 올리면 사유가 표시됩니다
+            </div>
+          )}
           <table className="min-w-[1100px] text-sm">
             <thead>
               <tr className="bg-gray-50 text-gray-500">
@@ -311,8 +327,13 @@ export default function AdminPage() {
                   const wd = new Date(year, month - 1, d).getDay();
                   const wdLabel = ["일", "월", "화", "수", "목", "금", "토"][wd];
                   const wdColor = wd === 0 ? "text-red-500" : wd === 6 ? "text-blue-600" : "text-gray-400";
+                  const dayIssues = violatedDayMap.get(d);
                   return (
-                    <th key={i} className="px-1 py-2 font-medium border-b border-gray-200 leading-tight">
+                    <th
+                      key={i}
+                      className={`px-1 py-2 font-medium border-b border-gray-200 leading-tight ${dayIssues ? "bg-red-100/70" : ""}`}
+                      title={dayIssues?.join("\n")}
+                    >
                       <div>{d}</div>
                       <div className={`text-[10px] font-normal ${wdColor}`}>({wdLabel})</div>
                     </th>
@@ -341,14 +362,15 @@ export default function AdminPage() {
                         <td colSpan={4} className="bg-gray-100 border-y border-gray-200"></td>
                       </tr>
                     )}
-                    <tr key={name} className="border-b border-gray-100 last:border-0">
-                      <td className="sticky left-0 bg-white px-3 py-1.5 font-medium text-gray-800 z-10">{name}</td>
-                      <td className="sticky left-[72px] bg-white px-2 py-1.5 text-gray-500 z-10">{roleAbbrev(role)}</td>
+                    <tr key={name} className={`border-b border-gray-100 last:border-0 ${violatedNameMap.has(name) ? "bg-red-100/60" : ""}`} title={violatedNameMap.get(name)?.join("\n")}>
+                      <td className={`sticky left-0 px-3 py-1.5 font-medium text-gray-800 z-10 ${violatedNameMap.has(name) ? "bg-red-50" : "bg-white"}`}>{name}</td>
+                      <td className={`sticky left-[72px] px-2 py-1.5 text-gray-500 z-10 ${violatedNameMap.has(name) ? "bg-red-50" : "bg-white"}`}>{roleAbbrev(role)}</td>
                       {Array.from({ length: total }, (_, i) => {
                         const d = i + 1;
                         const s = days[d] || "";
+                        const dayIssues = violatedDayMap.get(d);
                         return (
-                          <td key={d} className="text-center px-0.5 py-1.5">
+                          <td key={d} className={`text-center px-0.5 py-1.5 ${dayIssues ? "bg-red-100/70" : ""}`} title={dayIssues?.join("\n")}>
                             {s && <span className={`inline-flex w-6 h-6 items-center justify-center rounded border text-xs font-medium ${SHIFT_BADGE_CLASS[s]}`}>{s}</span>}
                           </td>
                         );
