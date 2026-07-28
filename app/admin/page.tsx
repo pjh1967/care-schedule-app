@@ -98,6 +98,31 @@ export default function AdminPage() {
     setRules((prev) => ({ ...prev, pairs: prev.pairs.filter((_, i) => i !== idx) }));
   };
 
+  const recommendOffsets = async () => {
+    setLoading(true);
+    setMsg("전달 실이력 기반 그룹설정 추천 계산 중...");
+    try {
+      const res = await fetch("/api/recommend-offsets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ year, month }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setStaffConfigs((prev) =>
+        prev.map((s) => {
+          const rec = data.recommendations?.[s.name];
+          return rec ? { ...s, offset: rec.offset } : s;
+        })
+      );
+      setContinuityNotes(data.notes || []);
+      setMsg(`${data.referenceMonth?.month ?? ""}월 실이력 기반 추천값을 그룹설정 칸에 채웠습니다. 확인 후 "설정 저장"을 눌러주세요.`);
+    } catch (e) {
+      setMsg("추천 실패: " + (e instanceof Error ? e.message : String(e)));
+    }
+    setLoading(false);
+  };
+
   const total = new Date(year, month, 0).getDate();
 
   // 배정기준 표: 직위 그룹 순서로 정렬
@@ -289,10 +314,16 @@ export default function AdminPage() {
       <Card id="rules">
         <div className="flex justify-between items-center mb-4">
           <div className="text-base font-semibold text-gray-900">배정 기준</div>
-          <Button variant="outline" onClick={saveConfig} disabled={loading}>
-            설정 저장
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={recommendOffsets} disabled={loading}>
+              {year}년 {month}월 기준 · 전달 실이력으로 그룹설정 추천받기
+            </Button>
+            <Button variant="outline" onClick={saveConfig} disabled={loading}>
+              설정 저장
+            </Button>
+          </div>
         </div>
+        {msg && <div className="text-sm text-amber-700 mb-3">{msg}</div>}
         <div className="flex gap-6 mb-5 flex-wrap">
           <div>
             <div className="text-xs text-gray-500 mb-1">최대 연속 근무일</div>
