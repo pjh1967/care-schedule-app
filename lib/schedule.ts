@@ -196,22 +196,60 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
     }
   });
 
-  // ── 최소 근무일수 산정을 위한 최소 인원 점검(경고용) ──
+  // ── 7단계: 야간 후 주간 금지(11시간 최소휴식) 위반 수정 ──
+  // 앞 단계들(요청 반영/최대연속조정/최소근무일 채우기 등)을 거치며 "N 다음날 D"가
+  // 생겼을 수 있으므로, 모든 직원에 대해 마지막에 한 번 더 스캔해서 강제로 고친다.
+  // 단, 두 날 모두 직원의 명시적 요청이면 시스템이 임의로 덮어쓰지 않고 경고만 남긴다.
+  staffConfigs.forEach((emp) => {
+    for (let d = 1; d < total; d++) {
+      const cur = sched[emp.name][d];
+      const next = sched[emp.name][d + 1];
+      if (cur === "N" && next === "D") {
+        const curIsReq = !!requests[emp.name]?.[d];
+        const nextIsReq = !!requests[emp.name]?.[d + 1];
+        if (curIsReq && nextIsReq) {
+          violations.push(`${emp.name}: ${m}/${d}(야간)→${m}/${d + 1}(주간) 요청이 최소휴식(11시간) 규정과 충돌 — 직접 확인 필요`);
+        } else if (!nextIsReq) {
+          sched[emp.name][d + 1] = "/";
+        } else {
+          // 다음날만 요청이면 그 전날(N) 쪽을 휴무로 조정
+          sched[emp.name][d] = "/";
+        }
+      }
+    }
+  });
+
+  // ── 8단계: 주중/주말 최소 인원 자동 보충 ──
   for (let d = 1; d <= total; d++) {
-    let dc = 0,
-      nc = 0;
-    staffConfigs.forEach((emp) => {
-      const s = sched[emp.name][d];
-      if (s === "D") dc++;
-      if (s === "N") nc++;
-    });
     const wdMon = weekdayMonFirst(y, m, d);
-    const isWeekend = wdMon === 5 || wdMon === 6; // 토·일
+    const isWeekend = wdMon === 5 || wdMon === 6;
     const minDay = isWeekend ? rules.minDayStaffWeekend : rules.minDayStaffWeekday;
     const minNight = isWeekend ? rules.minNightStaffWeekend : rules.minNightStaffWeekday;
-    const dayLabel = isWeekend ? "(주말)" : "(주중)";
-    if (dc < minDay) violations.push(`${m}/${d}${dayLabel} 주간 인원부족(${dc}명, 기준 ${minDay}명)`);
-    if (nc < minNight) violations.push(`${m}/${d}${dayLabel} 야간 인원부족(${nc}명, 기준 ${minNight}명)`);
+
+    const fillShort = (shiftType: "D" | "N", minCount: number) => {
+      let count = staffConfigs.filter((e) => sched[e.name][d] === shiftType).length;
+      if (count >= minCount) return;
+      const candidates = staffConfigs.filter((e) => {
+        if (sched[e.name][d] !== "/") return false; // 쉬는 사람만 후보
+        if (requests[e.name]?.[d]) return false; // 직원 요청은 건드리지 않음
+        const prev = sched[e.name][d - 1];
+        const next = sched[e.name][d + 1];
+        if (shiftType === "D" && prev === "N") return false; // 야간 다음날 주간 금지
+        if (shiftType === "N" && next === "D") return false; // 이 날 야간으로 바꾸면 다음날 주간과 충돌
+        return true;
+      });
+      for (const c of candidates) {
+        if (count >= minCount) break;
+        sched[c.name][d] = shiftType;
+        count++;
+      }
+      if (count < minCount) {
+        violations.push(`${m}/${d}(${isWeekend ? "주말" : "주중"}) ${shiftType === "D" ? "주간" : "야간"} 인원 자동보충 실패 (가능인원 부족, ${count}/${minCount}명)`);
+      }
+    };
+
+    fillShort("D", minDay);
+    fillShort("N", minNight);
   }
 
   return { schedule: sched, violations, continuityNotes };
