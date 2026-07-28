@@ -1,71 +1,54 @@
-# Getting Started with Create React App
+# care-schedule-app (v2 — Next.js 재구성)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+근무표 자동생성 관리자앱. `요청입력_v2`(직원 요청)와 지난달 `근무표_v2` 실이력을 반영해
+이번 달 근무표를 자동 생성하고, `근무표_v2` 시트에 저장합니다.
 
-## Available Scripts
+## 이전 버전과 달라진 점
+- Google OAuth 로그인 제거 → **saesun-care-schedule과 동일한 비밀번호 세션 로그인**
+  (`ADMIN_PASSWORD` 1개로 관리자 인증, Google 계정 불필요)
+- Sheets 접근은 전부 API Route에서 **서비스 계정**으로 처리 (saesun과 동일 계정/스프레드시트 공유)
+- 근무기호 `주/야/공/V` → `D/N/휴무(/)/연차/교육`
+- **전달 근무표 반영(핵심 변경)**: 기존에는 고정 기준일(2025-01-01)부터의 경과일수로만
+  6일 순환주기(D-D-N-N-휴-휴)를 계산했지만, 이제는 `근무표_v2`에 저장된 **지난달 마지막
+  실제 근무이력**을 읽어서 이번 달 1일의 순환 위치를 이어갑니다. 지난달 데이터가 없으면
+  (최초 실행 등) 직원별로 설정해 둔 기본 오프셋 값으로 대체합니다.
+  - 로직: `lib/schedule.ts`의 `continuedCycleIndexForDay1()` — 지난달 마지막 날짜부터
+    거슬러 올라가며 연차/교육을 건너뛰고 실제 순환값(D/N/휴무) 2개를 찾아, 그 조합으로
+    이번 달 1일의 순환 인덱스를 역산합니다. (D-D-N-N-휴-휴 6가지 인접쌍이 모두 서로
+    달라서 2개 값만으로 위치가 유일하게 결정됩니다.)
 
-In the project directory, you can run:
+## 시트 구조 (saesun 스프레드시트 내 새 시트로 병존)
+| 시트 | 용도 |
+|---|---|
+| `직원마스터` | saesun의 기존 시트 재사용 (이름/직위) |
+| `요청입력_v2` | care-staff-app에서 입력한 직원 요청 |
+| `근무표_v2` | 이 앱이 생성한 결과 (이름/직위/년/월/1~31일) |
+| `배정기준_v2` | 직원별 순환유형·오프셋·최소근무일·제외요일 (A~E열) + 전체규칙(최대연속/최대근무일, G~H열) + 페어링(J~L열) |
 
-### `npm start`
+## 환경변수
+```
+GOOGLE_SERVICE_ACCOUNT_EMAIL=...
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+SPREADSHEET_ID=...
+ADMIN_PASSWORD=관리자_비밀번호
+SESSION_SECRET=임의의_긴_랜덤_문자열
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 배포
+1. 이 폴더 내용을 GitHub Desktop의 `care-schedule-app` 로컬 폴더에 덮어쓰기 (`.git` 제외)
+2. `git add . && git commit -m "Next.js 재구성 (서비스계정 + 연속성 반영)" && git push`
+3. Vercel → 위 5개 환경변수 등록 → 재배포
+4. 배포된 주소 접속 → `/login`에서 `ADMIN_PASSWORD`로 로그인 → `/admin`에서
+   "배정 기준" 탭에 직원별 유형/오프셋/최소근무일을 먼저 입력 후 저장
+5. 근무표 생성 버튼으로 첫 달 생성 (이때는 지난달 이력이 없으므로 기본 오프셋 사용,
+   화면에 "기본 오프셋으로 대체" 안내가 표시됩니다). 다음 달부터는 자동으로 전달 이력을
+   반영합니다.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 참고 (Next.js 16 대비)
+saesun-care-schedule에서 `middleware.ts`가 Next.js 16 비호환으로 `proxy.ts`로 이전된
+이력이 있습니다. 이 앱도 나중에 Next 16으로 올릴 계획이 있다면 같은 작업이 필요합니다.
+지금은 Next 14.2.35 기준으로 `middleware.ts`가 정상 동작합니다.
 
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-"# care-schedule-app" 
+## 아직 반영되지 않은 것 (필요 시 후속 작업)
+- 공휴일(H) 처리 — 기존 관리자앱_App.js에는 있었지만 이번 재구성에서는 범위에서 제외했습니다.
+- 임시조리원/환자배정 로직 — saesun-care-schedule의 별도 기능이며 이 앱과는 무관합니다.
