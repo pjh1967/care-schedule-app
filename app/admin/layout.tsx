@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 const NAV = [
   { href: "#generate", label: "근무표 생성" },
   { href: "#rules", label: "배정 기준" },
+  { href: "#pairs", label: "페어링" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

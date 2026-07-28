@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { StaffConfig, GlobalRules, ShiftType, SHIFT_BADGE_CLASS } from "@/lib/types";
 import { Button, Card, Select, Input } from "@/components/ui";
 
+const WD_MON_FIRST = ["월", "화", "수", "목", "금", "토", "일"]; // 0=월 ~ 6=일 (lib/schedule.ts weekdayMonFirst와 동일 순서)
+
 export default function AdminPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -54,6 +56,31 @@ export default function AdminPage() {
 
   const updateConfig = (name: string, patch: Partial<StaffConfig>) => {
     setStaffConfigs((prev) => prev.map((s) => (s.name === name ? { ...s, ...patch } : s)));
+  };
+
+  const toggleExcludeWeekday = (name: string, idx: number) => {
+    setStaffConfigs((prev) =>
+      prev.map((s) => {
+        if (s.name !== name) return s;
+        const cur = new Set(s.excludeWeekdays || []);
+        if (cur.has(idx)) cur.delete(idx);
+        else cur.add(idx);
+        return { ...s, excludeWeekdays: Array.from(cur).sort((a, b) => a - b) };
+      })
+    );
+  };
+
+  const addPair = () => {
+    if (staffConfigs.length < 2) return;
+    setRules((prev) => ({ ...prev, pairs: [...prev.pairs, { a: staffConfigs[0].name, b: staffConfigs[1].name, mode: "같은조" }] }));
+  };
+
+  const updatePair = (idx: number, patch: Partial<GlobalRules["pairs"][number]>) => {
+    setRules((prev) => ({ ...prev, pairs: prev.pairs.map((p, i) => (i === idx ? { ...p, ...patch } : p)) }));
+  };
+
+  const removePair = (idx: number) => {
+    setRules((prev) => ({ ...prev, pairs: prev.pairs.filter((_, i) => i !== idx) }));
   };
 
   const total = new Date(year, month, 0).getDate();
@@ -172,7 +199,7 @@ export default function AdminPage() {
                 <th className="py-2 px-2 font-medium">유형</th>
                 <th className="py-2 px-2 font-medium">오프셋(0-5)</th>
                 <th className="py-2 px-2 font-medium">최소근무일</th>
-                <th className="py-2 px-2 font-medium">제외요일(월0~일6, 콤마)</th>
+                <th className="py-2 px-2 font-medium">제외요일</th>
               </tr>
             </thead>
             <tbody>
@@ -193,23 +220,72 @@ export default function AdminPage() {
                     <Input type="number" value={s.minWorkDays} onChange={(e) => updateConfig(s.name, { minWorkDays: Number(e.target.value) })} className="w-16" />
                   </td>
                   <td className="py-1.5 px-2">
-                    <Input
-                      value={(s.excludeWeekdays || []).join(",")}
-                      onChange={(e) =>
-                        updateConfig(s.name, {
-                          excludeWeekdays: e.target.value
-                            .split(",")
-                            .map((v) => Number(v.trim()))
-                            .filter((n) => !Number.isNaN(n)),
-                        })
-                      }
-                      className="w-28"
-                    />
+                    <div className="flex gap-0.5">
+                      {WD_MON_FIRST.map((w, idx) => {
+                        const active = (s.excludeWeekdays || []).includes(idx);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => toggleExcludeWeekday(s.name, idx)}
+                            className={`w-6 h-6 text-[11px] rounded ${
+                              active ? "bg-emerald-700 text-white" : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
+                            }`}
+                            title={active ? `${w}요일 근무 제외됨 (클릭 시 해제)` : `${w}요일 근무 제외하려면 클릭`}
+                          >
+                            {w}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </Card>
+
+      <Card id="pairs">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <div className="text-base font-semibold text-gray-900">페어링</div>
+            <div className="text-xs text-gray-500 mt-0.5">두 직원이 항상 같은 조로 근무하거나(같은조), 절대 겹치지 않게(다른조) 묶을 수 있습니다.</div>
+          </div>
+          <Button variant="outline" onClick={saveConfig} disabled={loading}>
+            설정 저장
+          </Button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {rules.pairs.map((p, idx) => (
+            <div key={idx} className="flex gap-2 items-center flex-wrap">
+              <Select value={p.a} onChange={(e) => updatePair(idx, { a: e.target.value })} className="w-40">
+                {staffConfigs.map((s) => (
+                  <option key={s.name} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+              </Select>
+              <Select value={p.mode} onChange={(e) => updatePair(idx, { mode: e.target.value as "같은조" | "다른조" })} className="w-24">
+                <option value="같은조">같은조</option>
+                <option value="다른조">다른조</option>
+              </Select>
+              <Select value={p.b} onChange={(e) => updatePair(idx, { b: e.target.value })} className="w-40">
+                {staffConfigs.map((s) => (
+                  <option key={s.name} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+              </Select>
+              <button onClick={() => removePair(idx)} className="text-xs text-red-500 hover:underline">
+                삭제
+              </button>
+            </div>
+          ))}
+          {rules.pairs.length === 0 && <div className="text-sm text-gray-400">등록된 페어링이 없습니다.</div>}
+          <Button variant="outline" onClick={addPair} className="self-start mt-2">
+            + 페어링 추가
+          </Button>
         </div>
       </Card>
     </div>
