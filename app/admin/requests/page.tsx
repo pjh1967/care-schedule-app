@@ -123,58 +123,6 @@ function RequestsPageInner() {
         <div className="text-xs text-gray-400 mt-2">날짜를 클릭하면 그날의 요청을 직접 추가·수정·삭제할 수 있습니다.</div>
       </Card>
 
-      {selectedDay !== null && (
-        <Card>
-          <div className="flex justify-between items-center mb-3">
-            <div className="text-base font-semibold text-gray-900">
-              {month}월 {selectedDay}일 요청 편집
-            </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setSelectedDay(null)}>
-                닫기
-              </Button>
-              <Button onClick={saveDay} disabled={saving}>
-                {saving ? "저장 중..." : "저장"}
-              </Button>
-            </div>
-          </div>
-          {msg && <div className="text-sm text-amber-700 mb-2">{msg}</div>}
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-gray-500 text-xs">
-                  <th className="text-left py-1.5 px-2 font-medium">이름</th>
-                  <th className="text-left py-1.5 px-2 font-medium">직위</th>
-                  <th className="py-1.5 px-2 font-medium">요청</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staff.map((s) => (
-                  <tr key={s.name} className="border-t border-gray-100">
-                    <td className="py-1.5 px-2 text-gray-800">{s.name}</td>
-                    <td className="py-1.5 px-2 text-gray-500">{s.role}</td>
-                    <td className="py-1.5 px-2">
-                      <Select
-                        value={editValues[s.name] || ""}
-                        onChange={(e) => setEditValues((prev) => ({ ...prev, [s.name]: e.target.value as ShiftType | "" }))}
-                        className="w-32"
-                      >
-                        <option value="">(없음)</option>
-                        {SHIFT_TYPES.map((t) => (
-                          <option key={t} value={t}>
-                            {SHIFT_LABEL[t]}
-                          </option>
-                        ))}
-                      </Select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
       <Card>
         <div className="grid grid-cols-7 gap-1.5">
           {WD.map((w) => (
@@ -211,6 +159,62 @@ function RequestsPageInner() {
           })}
         </div>
       </Card>
+
+      {selectedDay !== null && (
+        <Card>
+          <div className="flex justify-between items-center mb-3">
+            <div className="text-base font-semibold text-gray-900">
+              {month}월 {selectedDay}일 요청 편집
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setSelectedDay(null)}>
+                닫기
+              </Button>
+              <Button onClick={saveDay} disabled={saving}>
+                {saving ? "저장 중..." : "저장"}
+              </Button>
+            </div>
+          </div>
+          {msg && <div className="text-sm text-amber-700 mb-2">{msg}</div>}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-500 text-xs">
+                  <th className="text-left py-1.5 px-2 font-medium">이름</th>
+                  <th className="text-left py-1.5 px-2 font-medium">직위</th>
+                  <th className="py-1.5 px-2 font-medium">요청</th>
+                </tr>
+              </thead>
+              <tbody>
+                {staff.map((s) => {
+                  const val = editValues[s.name];
+                  const rowClass = val ? SHIFT_BADGE_CLASS[val] : "text-gray-800";
+                  return (
+                    <tr key={s.name} className={`border-t border-gray-100 ${rowClass}`}>
+                      <td className="py-1.5 px-2 font-medium">{s.name}</td>
+                      <td className="py-1.5 px-2 opacity-80">{s.role}</td>
+                      <td className="py-1.5 px-2">
+                        <Select
+                          value={editValues[s.name] || ""}
+                          onChange={(e) => setEditValues((prev) => ({ ...prev, [s.name]: e.target.value as ShiftType | "" }))}
+                          className="w-32"
+                        >
+                          <option value=""></option>
+                          {SHIFT_TYPES.map((t) => (
+                            <option key={t} value={t}>
+                              {SHIFT_LABEL[t]}
+                            </option>
+                          ))}
+                        </Select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

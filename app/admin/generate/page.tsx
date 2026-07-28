@@ -29,6 +29,7 @@ function GeneratePageInner() {
   const [violations, setViolations] = useState<string[]>([]);
   const [continuityNotes, setContinuityNotes] = useState<string[]>([]);
   const [continuityDetails, setContinuityDetails] = useState<ContinuityDetail[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -39,6 +40,29 @@ function GeneratePageInner() {
       if (data.staffConfigs) setStaffConfigs(data.staffConfigs);
     })();
   }, []);
+
+  // 년/월을 고를 때마다 "근무표 생성" 버튼을 누르기 전에도 연속성 반영 내역을 미리 보여준다.
+  // (recommend-offsets는 조회만 하고 시트에 아무것도 쓰지 않아 자동 호출해도 안전함)
+  useEffect(() => {
+    (async () => {
+      setPreviewLoading(true);
+      try {
+        const res = await fetch("/api/recommend-offsets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ year, month }),
+        });
+        const data = await res.json();
+        if (!data.error) {
+          setContinuityNotes(data.notes || []);
+          setContinuityDetails(data.details || []);
+        }
+      } catch {
+        // 미리보기 실패는 조용히 무시 — "근무표 생성"을 누르면 어차피 다시 계산됨
+      }
+      setPreviewLoading(false);
+    })();
+  }, [year, month]);
 
   const generate = async () => {
     setLoading(true);
@@ -150,6 +174,7 @@ function GeneratePageInner() {
             {loading ? "처리 중..." : `${year}년 ${month}월 근무표 생성`}
           </Button>
           {msg && <div className="text-sm text-amber-700">{msg}</div>}
+          {previewLoading && !msg && <div className="text-xs text-gray-400">연속성 미리보기 계산 중...</div>}
         </div>
       </Card>
 
@@ -159,6 +184,7 @@ function GeneratePageInner() {
             <div className="text-sm font-semibold text-emerald-700">연속성 반영 내역 — 팀장·요양보호사</div>
             <div className="text-xs text-gray-500 mt-0.5">
               {continuityDetails[0]?.prevMonthLabel} 마지막 5일 실이력 → {month}월 1일 시작 근무형태 · 그룹설정
+              {!schedule && <span className="text-gray-400"> (미리보기 — &ldquo;근무표 생성&rdquo;을 누르면 실제 결과로 갱신됩니다)</span>}
             </div>
           </div>
           <table className="min-w-[720px] text-sm">
