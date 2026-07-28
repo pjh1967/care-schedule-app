@@ -1,17 +1,41 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useYearMonthQuery } from "@/lib/useYearMonth";
 
 const NAV = [
-  { href: "#generate", label: "근무표 생성" },
-  { href: "#rules", label: "배정 기준" },
-  { href: "#pairs", label: "페어링" },
+  { href: "/admin/generate", label: "근무표 생성" },
+  { href: "/admin/rules", label: "배정 기준" },
+  { href: "/admin/requests", label: "근무요청사항" },
 ];
+
+function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate: () => void }) {
+  const query = useYearMonthQuery(); // 현재 년/월 선택을 유지한 채 페이지 이동
+  return (
+    <>
+      {NAV.map((n) => {
+        const active = pathname === n.href;
+        return (
+          <Link
+            key={n.href}
+            href={`${n.href}${query}`}
+            onClick={onNavigate}
+            className={`rounded-lg px-3 py-2 text-sm font-medium ${active ? "bg-emerald-50 text-emerald-700" : "text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"}`}
+          >
+            {n.label}
+          </Link>
+        );
+      })}
+    </>
+  );
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   const logout = async () => {
     await fetch("/api/auth", { method: "DELETE" });
@@ -40,11 +64,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="text-xs text-gray-500 mt-0.5">관리자</div>
         </div>
         <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
-          {NAV.map((n) => (
-            <a key={n.href} href={n.href} onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700">
-              {n.label}
-            </a>
-          ))}
+          <Suspense fallback={null}>
+            <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+          </Suspense>
         </nav>
         <div className="px-3 py-4 border-t border-gray-100">
           <button onClick={logout} className="w-full text-left rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100">
