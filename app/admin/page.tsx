@@ -129,7 +129,7 @@ export default function AdminPage() {
         })
       );
       setContinuityNotes(data.notes || []);
-      setContinuityDetails([]); // 추천받기 흐름은 표(전달 5일 상세)를 만들지 않으므로 이전 생성 결과 표는 비운다
+      setContinuityDetails(data.details || []);
       setMsg(`${data.referenceMonth?.month ?? ""}월 실이력 기반 추천값을 그룹설정 칸에 채웠습니다. 확인 후 "설정 저장"을 눌러주세요.`);
     } catch (e) {
       setMsg("추천 실패: " + (e instanceof Error ? e.message : String(e)));
