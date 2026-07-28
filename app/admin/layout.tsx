@@ -7,8 +7,8 @@ import { useYearMonthQuery } from "@/lib/useYearMonth";
 
 const NAV = [
   { href: "/admin/generate", label: "근무표 생성" },
-  { href: "/admin/rules", label: "배정 기준" },
   { href: "/admin/requests", label: "근무요청사항" },
+  { href: "/admin/rules", label: "배정 기준" },
 ];
 
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate: () => void }) {
