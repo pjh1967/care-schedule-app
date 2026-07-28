@@ -49,7 +49,9 @@ export async function POST(req: NextRequest) {
     await ensureSheetExists(RULES_SHEET);
     const rows = staffConfigs.map((s) => [s.name, s.type, s.offset, s.minWorkDays, (s.excludeWeekdays || []).join(",")]);
     await writeRange(`${RULES_SHEET}!A1:E1`, [CONFIG_HEADER]);
-    await writeRange(`${RULES_SHEET}!${CONFIG_RANGE}`, rows.length ? rows : [["", "", "", "", ""]]);
+    const MAX_STAFF_ROWS = 199; // A2:E200
+    const paddedRows = [...rows, ...Array.from({ length: Math.max(0, MAX_STAFF_ROWS - rows.length) }, () => ["", "", "", "", ""])];
+    await writeRange(`${RULES_SHEET}!${CONFIG_RANGE}`, paddedRows);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "저장 실패" }, { status: 500 });

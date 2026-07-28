@@ -40,8 +40,13 @@ export async function POST(req: NextRequest) {
     await writeRange(`${RULES_SHEET}!N1:Q1`, [["주중주간최소", "주중야간최소", "주말주간최소", "주말야간최소"]]);
     await writeRange(`${RULES_SHEET}!N2:Q2`, [[rules.minDayStaffWeekday, rules.minNightStaffWeekday, rules.minDayStaffWeekend, rules.minNightStaffWeekend]]);
     await writeRange(`${RULES_SHEET}!J1:L1`, [["직원A", "직원B", "모드"]]);
+    const MAX_PAIR_ROWS = 29; // J2:L30
     const pairRows = rules.pairs.map((p) => [p.a, p.b, p.mode]);
-    await writeRange(`${RULES_SHEET}!J2:L30`, pairRows.length ? pairRows : [["", "", ""]]);
+    const paddedPairRows = [
+      ...pairRows,
+      ...Array.from({ length: Math.max(0, MAX_PAIR_ROWS - pairRows.length) }, () => ["", "", ""]),
+    ];
+    await writeRange(`${RULES_SHEET}!J2:L30`, paddedPairRows);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "저장 실패" }, { status: 500 });
