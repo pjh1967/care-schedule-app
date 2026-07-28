@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         notes.push(`${emp.name}: 전달 이력 기반 추천 오프셋 ${offset} (${prevMonth}월 마지막 실이력 기준, ${year}년 ${month}월 1일 = ${CYCLE[day1Index]})`);
       } else {
         recommendations[emp.name] = { offset: emp.offset, basis: "no-history" };
-        notes.push(`${emp.name}: ${prevMonth}월 이력 부족 → 기존 값(${emp.offset}) 유지`);
+        notes.push(`${emp.name}: ${prevMonth}월 이력에서 정상 순환 패턴을 찾지 못함(이력 없음 또는 한 달 내내 불규칙) → 기존 값(${emp.offset}) 유지`);
       }
     });
 

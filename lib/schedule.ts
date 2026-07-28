@@ -40,22 +40,28 @@ function findCycleIndex(prev2: CycleShift, prev1: CycleShift): number | null {
 }
 
 /**
- * 이전 달 마지막 며칠의 실제 이력(day -> shift)에서 뒤에서부터
- * 순환값(D/N//)인 항목 2개를 찾아 이번 달 1일의 순환 인덱스를 계산한다.
- * 못 찾으면 null (formula fallback 필요).
+ * 이전 달 실이력에서, 뒤에서부터 "인접한 두 날짜가 모두 순환값(D/N/휴무)이고 정상적인
+ * 6일 주기 조합을 이루는" 가장 최근 지점을 찾아, 거기서부터 월말까지 기계적으로 이어간 뒤
+ * 이번 달 1일의 순환 인덱스를 계산한다.
+ *
+ * 단순히 "마지막 2개의 순환값"만 보면, 그 두 값이 하필 수동 조정(대타 등)으로 정상 조합이
+ * 아닐 때 곧바로 "이력 부족"으로 포기하게 된다. 이를 방지하기 위해 더 이전 날짜까지
+ * 계속 거슬러 올라가며 "정상적으로 이어지는 인접 쌍"을 찾는다.
  */
 export function continuedCycleIndexForDay1(prevMonthDays: (ShiftType | undefined)[]): number | null {
   // prevMonthDays: index 0 = 이전달 1일 ... 마지막 = 이전달 말일, 순서대로
-  const cycleEntries: CycleShift[] = [];
-  for (let i = prevMonthDays.length - 1; i >= 0 && cycleEntries.length < 2; i--) {
-    const s = prevMonthDays[i];
-    if (isCycleShift(s)) cycleEntries.unshift(s);
+  const lastIdx = prevMonthDays.length - 1;
+  for (let i = lastIdx; i >= 1; i--) {
+    const a = prevMonthDays[i - 1]; // 앞날
+    const b = prevMonthDays[i]; // 뒷날 (더 최근)
+    if (!isCycleShift(a) || !isCycleShift(b)) continue;
+    const pOfB = findCycleIndex(a, b);
+    if (pOfB === null) continue; // 이 인접쌍은 정상 조합이 아님 → 더 앞으로 계속 탐색
+    const stepsToMonthEnd = lastIdx - i; // b(날짜 i)에서 월말까지 며칠 남았는지
+    const lastDayIndex = (pOfB + stepsToMonthEnd) % 6;
+    return (lastDayIndex + 1) % 6; // 다음 달 1일 인덱스
   }
-  if (cycleEntries.length < 2) return null;
-  const [prev2, prev1] = cycleEntries;
-  const pIndexOfPrev1 = findCycleIndex(prev2, prev1);
-  if (pIndexOfPrev1 === null) return null;
-  return (pIndexOfPrev1 + 1) % 6;
+  return null; // 한 달 전체를 훑어도 정상 조합을 못 찾음 → 진짜 이력 부족
 }
 
 interface GenerateInput {
@@ -96,7 +102,7 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
       } else {
         // fallback: 설정된 기본 오프셋을 그대로 1일 인덱스로 사용
         startIdx = ((emp.offset % 6) + 6) % 6;
-        continuityNotes.push(`${emp.name}: 전달 이력 부족 → 기본 오프셋(${emp.offset})으로 대체`);
+        continuityNotes.push(`${emp.name}: 전달 이력에서 정상 순환 패턴을 찾지 못함(이력 없음 또는 한 달 내내 불규칙) → 기본 오프셋(${emp.offset})으로 대체`);
       }
     } else {
       startIdx = -1; // 미사용
