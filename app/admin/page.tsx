@@ -11,6 +11,7 @@ const TYPE_ROW_CLASS: Record<StaffConfig["type"], string> = {
   순환: "",
   주간전담: "bg-amber-50",
   야간전담: "bg-indigo-50",
+  주중근무: "bg-sky-50",
 };
 
 function groupedStaff<T extends { role: string }>(list: T[]): T[] {
@@ -341,6 +342,9 @@ export default function AdminPage() {
           <span className="inline-flex items-center gap-1">
             <span className="inline-block w-3 h-3 rounded bg-indigo-50 border border-indigo-200" /> 야간전담
           </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded bg-sky-50 border border-sky-200" /> 주중근무
+          </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -376,6 +380,7 @@ export default function AdminPage() {
                           <option value="순환">순환</option>
                           <option value="주간전담">주간전담</option>
                           <option value="야간전담">야간전담</option>
+                          <option value="주중근무">주중근무</option>
                         </Select>
                       </td>
                       <td className="py-1.5 px-2">

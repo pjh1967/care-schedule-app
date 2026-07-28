@@ -20,6 +20,13 @@ function isCycleShift(s: ShiftType | undefined): s is CycleShift {
   return s === "D" || s === "N" || s === "/";
 }
 
+/** 유형별로 고정된 주간 휴무 요일인지 (0=월 ~ 6=일, weekdayMonFirst 기준) */
+function isTypeFixedOffDay(type: StaffConfig["type"], wdMon: number): boolean {
+  if (type === "주간전담" || type === "야간전담") return wdMon === 6; // 일요일만 기본 휴무
+  if (type === "주중근무") return wdMon === 5 || wdMon === 6; // 토·일 휴무 (월~금만 근무)
+  return false; // 순환형은 6일 주기 자체에서 휴무가 나옴
+}
+
 /**
  * (직전값, 직전직전값) 쌍으로 순환주기 내 "직전값"의 위치(index)를 찾는다.
  * CYCLE = [D,D,N,N,/,/] 은 인접 2개 값 조합이 모두 서로 달라(6가지 조합이 유일)
@@ -104,11 +111,15 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
         continue;
       }
       if (emp.type === "주간전담") {
-        sched[emp.name][d] = wdMon === 6 ? "/" : "D"; // 일요일(6=일) 휴무
+        sched[emp.name][d] = isTypeFixedOffDay(emp.type, wdMon) || excluded.has(wdMon) ? "/" : "D";
         continue;
       }
       if (emp.type === "야간전담") {
-        sched[emp.name][d] = wdMon === 6 ? "/" : "N";
+        sched[emp.name][d] = isTypeFixedOffDay(emp.type, wdMon) || excluded.has(wdMon) ? "/" : "N";
+        continue;
+      }
+      if (emp.type === "주중근무") {
+        sched[emp.name][d] = isTypeFixedOffDay(emp.type, wdMon) || excluded.has(wdMon) ? "/" : "D";
         continue;
       }
       // 순환형
@@ -140,7 +151,7 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
       for (let d = 1; d <= total && need > 0; d++) {
         const s = sched[emp.name][d];
         const wdMon = weekdayMonFirst(y, m, d);
-        if (s === "/" && !excluded.has(wdMon) && !req[d]) {
+        if (s === "/" && !excluded.has(wdMon) && !isTypeFixedOffDay(emp.type, wdMon) && !req[d]) {
           sched[emp.name][d] = defShift;
           need--;
         }
