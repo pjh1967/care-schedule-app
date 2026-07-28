@@ -72,10 +72,22 @@ interface GenerateInput {
   prevMonthHistory: Record<string, (ShiftType | undefined)[]>; // 직원명 -> 이전달 1~말일 배열
 }
 
+export interface ContinuityDetail {
+  name: string;
+  role: string;
+  type: StaffConfig["type"];
+  prevMonthLabel: string; // 예: "7월"
+  last5: { day: number; shift: ShiftType | undefined }[]; // 전달 마지막 5일
+  startShift: ShiftType | undefined; // 이번달 1일 근무형태
+  basis: "history" | "fallback" | "fixed";
+  groupOffset: number | null; // fallback일 때만 실제 사용된 그룹설정 값
+}
+
 export interface GenerateResult {
   schedule: Record<string, Record<number, ShiftType>>;
   violations: string[];
   continuityNotes: string[];
+  continuityDetails: ContinuityDetail[];
 }
 
 export function generateSchedule(input: GenerateInput): GenerateResult {
@@ -84,6 +96,7 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
   const violations: string[] = [];
   const continuityNotes: string[] = [];
   const sched: Record<string, Record<number, ShiftType>> = {};
+  const continuityMeta: Record<string, { basis: "history" | "fallback" | "fixed"; groupOffset: number | null }> = {};
 
   staffConfigs.forEach((emp) => {
     sched[emp.name] = {};
@@ -92,19 +105,26 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
 
     // ── 1단계: 순환 인덱스 결정 (전달 이력 우선, 없으면 설정된 오프셋) ──
     let startIdx: number;
+    const isCaregiver = emp.role === "팀장" || emp.role === "요양보호사";
     if (emp.type === "순환") {
       const history = prevMonthHistory[emp.name];
       const continued = history ? continuedCycleIndexForDay1(history) : null;
       if (continued !== null) {
         startIdx = continued;
         continuityNotes.push(`${emp.name}: 전달 실이력 기반 순환 이어가기 적용 (1일 = ${CYCLE[startIdx]})`);
+        continuityMeta[emp.name] = { basis: "history", groupOffset: null };
       } else {
         // fallback: 설정된 기본 오프셋을 그대로 1일 인덱스로 사용
         startIdx = ((emp.offset % 6) + 6) % 6;
         continuityNotes.push(`${emp.name}: 전달 이력에서 정상 순환 패턴을 찾지 못함(이력 없음 또는 한 달 내내 불규칙) → 기본 오프셋(${emp.offset})으로 대체`);
+        continuityMeta[emp.name] = { basis: "fallback", groupOffset: startIdx };
       }
     } else {
       startIdx = -1; // 미사용
+      if (isCaregiver) {
+        continuityNotes.push(`${emp.name}: 고정근무유형(${emp.type})이라 순환 연속성 미적용`);
+      }
+      continuityMeta[emp.name] = { basis: "fixed", groupOffset: null };
     }
 
     // ── 2단계: 기본 배정 ──
@@ -148,21 +168,23 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
       }
     }
 
-    // ── 4단계: 최소 근무일 보장 ──
+    // ── 4단계: 최소 근무일 보장 (주중근무는 점검 제외) ──
     const defShift: ShiftType = emp.type === "야간전담" ? "N" : "D";
-    let workCount = Object.values(sched[emp.name]).filter((s) => s === "D" || s === "N").length;
-    if (workCount < emp.minWorkDays) {
-      let need = emp.minWorkDays - workCount;
-      for (let d = 1; d <= total && need > 0; d++) {
-        const s = sched[emp.name][d];
-        const wdMon = weekdayMonFirst(y, m, d);
-        if (s === "/" && !excluded.has(wdMon) && !isTypeFixedOffDay(emp.type, wdMon) && !req[d]) {
-          sched[emp.name][d] = defShift;
-          need--;
+    if (emp.type !== "주중근무") {
+      let workCount = Object.values(sched[emp.name]).filter((s) => s === "D" || s === "N").length;
+      if (workCount < emp.minWorkDays) {
+        let need = emp.minWorkDays - workCount;
+        for (let d = 1; d <= total && need > 0; d++) {
+          const s = sched[emp.name][d];
+          const wdMon = weekdayMonFirst(y, m, d);
+          if (s === "/" && !excluded.has(wdMon) && !isTypeFixedOffDay(emp.type, wdMon) && !req[d]) {
+            sched[emp.name][d] = defShift;
+            need--;
+          }
         }
+        const after = Object.values(sched[emp.name]).filter((s) => s === "D" || s === "N").length;
+        if (after < emp.minWorkDays) violations.push(`${emp.name} 최소근무 미충족 (${after}/${emp.minWorkDays}일)`);
       }
-      const after = Object.values(sched[emp.name]).filter((s) => s === "D" || s === "N").length;
-      if (after < emp.minWorkDays) violations.push(`${emp.name} 최소근무 미충족 (${after}/${emp.minWorkDays}일)`);
     }
 
     // ── 5단계: 최대 근무일 초과 제한 ──
@@ -252,5 +274,30 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
     fillShort("N", minNight);
   }
 
-  return { schedule: sched, violations, continuityNotes };
+  // ── 팀장/요양보호사 전달 마지막 5일 + 이번달 시작형태 + 그룹설정 표 데이터 ──
+  const prevYear = m === 1 ? y - 1 : y;
+  const prevMonth = m === 1 ? 12 : m - 1;
+  const continuityDetails: ContinuityDetail[] = staffConfigs
+    .filter((emp) => emp.role === "팀장" || emp.role === "요양보호사")
+    .map((emp) => {
+      const hist = prevMonthHistory[emp.name] || [];
+      const histTotal = hist.length;
+      const last5: { day: number; shift: ShiftType | undefined }[] = [];
+      for (let i = Math.max(0, histTotal - 5); i < histTotal; i++) {
+        last5.push({ day: i + 1, shift: hist[i] });
+      }
+      const meta = continuityMeta[emp.name] || { basis: "fixed" as const, groupOffset: null };
+      return {
+        name: emp.name,
+        role: emp.role,
+        type: emp.type,
+        prevMonthLabel: `${prevYear}년 ${prevMonth}월`,
+        last5,
+        startShift: sched[emp.name]?.[1],
+        basis: meta.basis,
+        groupOffset: meta.groupOffset,
+      };
+    });
+
+  return { schedule: sched, violations, continuityNotes, continuityDetails };
 }

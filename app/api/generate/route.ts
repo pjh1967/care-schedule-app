@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       schedule: result.schedule,
       violations: result.violations,
       continuityNotes: result.continuityNotes,
+      continuityDetails: result.continuityDetails,
       staff: staffConfigs.map((s) => ({ name: s.name, role: s.role })),
     });
   } catch (e) {

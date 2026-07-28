@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { StaffConfig, GlobalRules, ShiftType, SHIFT_BADGE_CLASS, roleGroupIndex, ROLE_GROUP_LABELS } from "@/lib/types";
+import type { ContinuityDetail } from "@/lib/schedule";
 import { Button, Card, Select, Input } from "@/components/ui";
 
 const WD_MON_FIRST = ["월", "화", "수", "목", "금", "토", "일"]; // 0=월 ~ 6=일 (lib/schedule.ts weekdayMonFirst와 동일 순서)
@@ -38,6 +39,7 @@ export default function AdminPage() {
   const [schedule, setSchedule] = useState<Record<string, Record<number, ShiftType>> | null>(null);
   const [violations, setViolations] = useState<string[]>([]);
   const [continuityNotes, setContinuityNotes] = useState<string[]>([]);
+  const [continuityDetails, setContinuityDetails] = useState<ContinuityDetail[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -64,6 +66,7 @@ export default function AdminPage() {
     setLoading(true);
     setMsg("근무표 생성 중...");
     setSchedule(null);
+    setContinuityDetails([]);
     try {
       const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ year, month }) });
       const data = await res.json();
@@ -71,6 +74,7 @@ export default function AdminPage() {
       setSchedule(data.schedule);
       setViolations(data.violations || []);
       setContinuityNotes(data.continuityNotes || []);
+      setContinuityDetails(data.continuityDetails || []);
       setMsg("생성 완료 (근무표_v2 시트에 저장됨)");
     } catch (e) {
       setMsg("생성 실패: " + (e instanceof Error ? e.message : String(e)));
@@ -125,6 +129,7 @@ export default function AdminPage() {
         })
       );
       setContinuityNotes(data.notes || []);
+      setContinuityDetails([]); // 추천받기 흐름은 표(전달 5일 상세)를 만들지 않으므로 이전 생성 결과 표는 비운다
       setMsg(`${data.referenceMonth?.month ?? ""}월 실이력 기반 추천값을 그룹설정 칸에 채웠습니다. 확인 후 "설정 저장"을 눌러주세요.`);
     } catch (e) {
       setMsg("추천 실패: " + (e instanceof Error ? e.message : String(e)));
@@ -206,9 +211,72 @@ export default function AdminPage() {
         </div>
       </Card>
 
-      {(violations.length > 0 || continuityNotes.length > 0) && (
+      {continuityDetails.length > 0 && (
+        <Card noPadding className="overflow-x-auto">
+          <div className="px-4 pt-4 pb-2">
+            <div className="text-sm font-semibold text-emerald-700">연속성 반영 내역 — 팀장·요양보호사</div>
+            <div className="text-xs text-gray-500 mt-0.5">{continuityDetails[0]?.prevMonthLabel} 마지막 5일 실이력 → {month}월 1일 시작 근무형태 · 그룹설정</div>
+          </div>
+          <table className="min-w-[720px] text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-gray-500 text-xs">
+                <th className="text-left px-3 py-2 font-medium border-b border-gray-200">이름</th>
+                <th className="px-2 py-2 font-medium border-b border-gray-200">직위</th>
+                <th className="px-2 py-2 font-medium border-b border-gray-200" colSpan={5}>
+                  전달 마지막 5일
+                </th>
+                <th className="px-2 py-2 font-medium border-b border-l border-gray-200">{month}월 1일</th>
+                <th className="px-2 py-2 font-medium border-b border-gray-200">그룹설정</th>
+                <th className="px-2 py-2 font-medium border-b border-gray-200">근거</th>
+              </tr>
+            </thead>
+            <tbody>
+              {continuityDetails.map((cd) => (
+                <tr key={cd.name} className="border-t border-gray-100">
+                  <td className="px-3 py-1.5 font-medium text-gray-800">{cd.name}</td>
+                  <td className="px-2 py-1.5 text-gray-500">{cd.role}</td>
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const entry = cd.last5[i];
+                    return (
+                      <td key={i} className="text-center px-1 py-1.5">
+                        {entry ? (
+                          <div>
+                            <div className="text-[10px] text-gray-400">{entry.day}일</div>
+                            {entry.shift ? (
+                              <span className={`inline-flex w-6 h-6 items-center justify-center rounded border text-xs font-medium ${SHIFT_BADGE_CLASS[entry.shift]}`}>{entry.shift}</span>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="text-center px-2 py-1.5 border-l border-gray-100">
+                    {cd.startShift ? (
+                      <span className={`inline-flex w-6 h-6 items-center justify-center rounded border text-xs font-medium ${SHIFT_BADGE_CLASS[cd.startShift]}`}>{cd.startShift}</span>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td className="text-center px-2 py-1.5 text-gray-600">{cd.groupOffset ?? "-"}</td>
+                  <td className="text-center px-2 py-1.5">
+                    {cd.basis === "history" && <span className="text-emerald-700 text-xs font-medium">이력기반</span>}
+                    {cd.basis === "fallback" && <span className="text-amber-700 text-xs font-medium">기본값</span>}
+                    {cd.basis === "fixed" && <span className="text-gray-400 text-xs font-medium">고정유형</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {(violations.length > 0 || (continuityNotes.length > 0 && continuityDetails.length === 0)) && (
         <Card>
-          {continuityNotes.length > 0 && (
+          {continuityNotes.length > 0 && continuityDetails.length === 0 && (
             <div className="mb-3">
               <div className="text-sm font-semibold text-emerald-700 mb-1.5">연속성 반영 내역</div>
               {continuityNotes.map((n, i) => (

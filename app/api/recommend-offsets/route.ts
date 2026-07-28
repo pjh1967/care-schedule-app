@@ -17,14 +17,9 @@ export async function POST(req: NextRequest) {
 
     const [staffConfigs, prevMonthHistory] = await Promise.all([loadStaffConfigs(), loadPrevMonthHistoryMerged(prevYear, prevMonth)]);
 
-    // 다음달(생성 대상 월) 1일의 elapsed 기준을 맞추기 위해, 전달 이력에서 이어지는 순환 인덱스를
-    // "이번 달 1일" 기준으로 계산한 뒤, 오프셋 값으로 역산한다.
-    // getShift 공식: CYCLE[(elapsed(day) + offset) % 6] — elapsed(이번달 1일)을 구해서
-    // offset = (day1Index - elapsed) mod 6 으로 변환한다.
-    const BASE_DATE = new Date(2025, 0, 1);
-    const day1 = new Date(year, month - 1, 1);
-    const elapsed = Math.floor((day1.getTime() - BASE_DATE.getTime()) / 86400000);
-
+    // 참고: lib/schedule.ts의 순환형 fallback 로직은 "그룹설정(오프셋)" 값을
+    // 이번 달 1일의 순환 인덱스로 그대로 사용한다(별도 기준일 환산 없음).
+    // 따라서 여기서도 day1Index를 그대로 오프셋 값으로 반환해야 실제 생성 결과와 일치한다.
     const recommendations: Record<string, { offset: number; basis: "history" | "no-history" }> = {};
     const notes: string[] = [];
 
@@ -33,9 +28,8 @@ export async function POST(req: NextRequest) {
       const history = prevMonthHistory[emp.name];
       const day1Index = history ? continuedCycleIndexForDay1(history) : null;
       if (day1Index !== null && day1Index !== undefined) {
-        const offset = (((day1Index - elapsed) % 6) + 6) % 6;
-        recommendations[emp.name] = { offset, basis: "history" };
-        notes.push(`${emp.name}: 전달 이력 기반 추천 오프셋 ${offset} (${prevMonth}월 마지막 실이력 기준, ${year}년 ${month}월 1일 = ${CYCLE[day1Index]})`);
+        recommendations[emp.name] = { offset: day1Index, basis: "history" };
+        notes.push(`${emp.name}: 전달 이력 기반 추천 오프셋 ${day1Index} (${prevMonth}월 마지막 실이력 기준, ${year}년 ${month}월 1일 = ${CYCLE[day1Index]})`);
       } else {
         recommendations[emp.name] = { offset: emp.offset, basis: "no-history" };
         notes.push(`${emp.name}: ${prevMonth}월 이력에서 정상 순환 패턴을 찾지 못함(이력 없음 또는 한 달 내내 불규칙) → 기존 값(${emp.offset}) 유지`);
