@@ -22,8 +22,8 @@ function isCycleShift(s: ShiftType | undefined): s is CycleShift {
 
 /** 유형별로 고정된 주간 휴무 요일인지 (0=월 ~ 6=일, weekdayMonFirst 기준) */
 function isTypeFixedOffDay(type: StaffConfig["type"], wdMon: number): boolean {
-  if (type === "주중근무") return wdMon === 5 || wdMon === 6; // 토·일 휴무 (월~금만 근무)
-  return false; // 주간전담/야간전담/순환은 자동 주말휴무 없음 — 제외요일로만 휴무 지정
+  if (type === "주중근무" || type === "주간전담") return wdMon === 5 || wdMon === 6; // 토·일 기본 휴무
+  return false; // 야간전담/순환은 자동 주말휴무 없음 — 제외요일로만 휴무 지정
 }
 
 /**
@@ -241,7 +241,7 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
     }
   });
 
-  // ── 8단계: 주중/주말 최소 인원 자동 보충 ──
+  // ── 8단계: 주중/주말 최소 인원 자동 보충 (주간은 최소 이상이면 OK, 야간은 최소치에 정확히 맞춤) ──
   for (let d = 1; d <= total; d++) {
     const wdMon = weekdayMonFirst(y, m, d);
     const isWeekend = wdMon === 5 || wdMon === 6;
@@ -254,6 +254,7 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
       const candidates = staffConfigs.filter((e) => {
         if (sched[e.name][d] !== "/") return false; // 쉬는 사람만 후보
         if (requests[e.name]?.[d]) return false; // 직원 요청은 건드리지 않음
+        if (e.type === "주중근무") return false; // 주중근무는 토·일 절대 근무 안 함(보충 대상 제외)
         const prev = sched[e.name][d - 1];
         const next = sched[e.name][d + 1];
         if (shiftType === "D" && prev === "N") return false; // 야간 다음날 주간 금지
@@ -270,8 +271,25 @@ export function generateSchedule(input: GenerateInput): GenerateResult {
       }
     };
 
-    fillShort("D", minDay);
+    // 야간은 최소인원을 "정확히" 맞춘다 — 초과분은 휴무로 되돌린다.
+    const trimExcess = (shiftType: "N", targetCount: number) => {
+      const working = staffConfigs.filter((e) => sched[e.name][d] === shiftType);
+      let excess = working.length - targetCount;
+      if (excess <= 0) return;
+      const candidates = working.filter((e) => !requests[e.name]?.[d]); // 명시적 요청으로 야간인 사람은 유지
+      for (const c of candidates) {
+        if (excess <= 0) break;
+        sched[c.name][d] = "/";
+        excess--;
+      }
+      if (excess > 0) {
+        violations.push(`${m}/${d}(${isWeekend ? "주말" : "주중"}) 야간 인원 초과 조정 실패 (요청 고정 인원이 많아 ${targetCount}명으로 못 줄임)`);
+      }
+    };
+
+    fillShort("D", minDay); // 주간: 최소 이상이면 그대로 둠(초과 조정 없음)
     fillShort("N", minNight);
+    trimExcess("N", minNight); // 야간만 최소인원에 정확히 맞춤
   }
 
   // ── 팀장/요양보호사 전달 마지막 5일 + 이번달 시작형태 + 그룹설정 표 데이터 ──
