@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Card, Input } from "@/components/ui";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
@@ -32,28 +33,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'맑은 고딕',sans-serif" }}>
-      <div style={{ background: "#111827", borderRadius: 16, padding: 32, width: 340, border: "1px solid #1e3a5f" }}>
-        <div style={{ fontSize: 40, textAlign: "center", marginBottom: 8 }}>🔐</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: "#00b4a6", textAlign: "center", marginBottom: 4 }}>관리자 로그인</div>
-        <div style={{ fontSize: 13, color: "#64748b", textAlign: "center", marginBottom: 20 }}>근무표 편성 관리자앱</div>
-        <input
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-sm">
+        <div className="text-lg font-bold text-gray-900 text-center mb-1">관리자 로그인</div>
+        <div className="text-sm text-gray-500 text-center mb-6">근무표 편성 관리자</div>
+        <Input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
           placeholder="비밀번호"
-          style={{ width: "100%", boxSizing: "border-box", background: "#0d1b2e", color: "#f0f4f8", border: "1px solid #1e3a5f", borderRadius: 8, padding: "12px 14px", fontSize: 16, marginBottom: 12 }}
+          className="mb-3 py-2"
         />
-        <button
-          onClick={submit}
-          disabled={loading}
-          style={{ width: "100%", background: "#00b4a6", color: "#fff", border: "none", borderRadius: 10, padding: "12px", fontSize: 16, fontWeight: 700, cursor: "pointer" }}
-        >
+        <Button onClick={submit} disabled={loading} className="w-full py-2.5">
           {loading ? "확인 중..." : "로그인"}
-        </button>
-        {msg && <div style={{ color: "#f59e0b", fontSize: 13, textAlign: "center", marginTop: 10 }}>{msg}</div>}
-      </div>
+        </Button>
+        {msg && <p className="text-sm text-red-600 text-center mt-3">{msg}</p>}
+      </Card>
     </div>
   );
 }

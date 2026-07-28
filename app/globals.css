@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background: #f9fafb; /* gray-50 */
+  color: #111827; /* gray-900 */
+}
+
+/* Safari 고정열 표 렌더링 이슈 대응 (디자인 가이드 10-2) */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}

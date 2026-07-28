@@ -26,3 +26,31 @@ export const SCHEDULE_SHEET = "근무표_v2";
 export const REQUEST_SHEET = "요청입력_v2";
 export const RULES_SHEET = "배정기준_v2";
 export const STAFF_MASTER_SHEET = "직원마스터"; // saesun 기존 시트 재사용
+
+// ── 직원용 요청 입력 화면에서 쓰는 값 ──────────────────────────
+export const SHIFT_TYPES: ShiftType[] = ["D", "N", "연차", "교육", "/"];
+
+export const SHIFT_LABEL: Record<ShiftType, string> = {
+  D: "주간",
+  N: "야간",
+  연차: "연차",
+  교육: "교육",
+  "/": "휴무",
+};
+
+// 디자인 가이드 2-3(semantic) + 보조 sky/indigo 색상 활용
+export const SHIFT_BADGE_CLASS: Record<ShiftType, string> = {
+  D: "bg-amber-50 text-amber-700 border-amber-200",
+  N: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  연차: "bg-purple-50 text-purple-700 border-purple-200",
+  교육: "bg-sky-50 text-sky-700 border-sky-200",
+  "/": "bg-gray-100 text-gray-600 border-gray-200",
+};
+
+export interface StaffMember {
+  name: string;
+  role: string;
+}
+
+export type DayRequests = Record<number, ShiftType>; // { 일: 근무유형 }
+
